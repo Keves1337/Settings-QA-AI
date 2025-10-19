@@ -6,7 +6,7 @@ import { SDLCPipeline } from "@/components/SDLCPipeline";
 import { TaskList, Task } from "@/components/TaskList";
 import { StatsCards } from "@/components/StatsCards";
 import { ProjectManager } from "@/components/ProjectManager";
-import { Sparkles, Zap, BarChart3, LogOut } from "lucide-react";
+import { Sparkles, Settings, BarChart3, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -402,7 +402,7 @@ const Index = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 animate-fade-in">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center glow smooth-transition hover:scale-110">
-                <Zap className="w-6 h-6 text-white" />
+                <Settings className="w-6 h-6 text-white" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold gradient-text">
