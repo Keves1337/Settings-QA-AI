@@ -125,32 +125,32 @@ const Index = () => {
 
   const stats = [
     {
-      label: "Overall Progress",
-      value: "41%",
-      change: "+12%",
+      label: "Active Projects",
+      value: "8",
+      change: "+2 new",
       trend: "up" as const,
-      icon: "progress" as const,
+      icon: "active" as const,
     },
     {
       label: "Completed Tasks",
-      value: "23",
-      change: "+5",
+      value: "156",
+      change: "+23 today",
       trend: "up" as const,
       icon: "completed" as const,
     },
     {
-      label: "Active Tasks",
-      value: "12",
-      change: "3 today",
+      label: "In Progress",
+      value: "24",
+      change: "12 critical",
       trend: "neutral" as const,
-      icon: "active" as const,
+      icon: "progress" as const,
     },
     {
-      label: "Days Remaining",
-      value: "45",
-      change: "On track",
-      trend: "neutral" as const,
-      icon: "blocked" as const,
+      label: "Test Coverage",
+      value: "87%",
+      change: "+5% this week",
+      trend: "up" as const,
+      icon: "completed" as const,
     },
   ];
 

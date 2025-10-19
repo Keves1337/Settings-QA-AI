@@ -22,11 +22,19 @@ const iconMap = {
   blocked: AlertTriangle,
 };
 
-const iconColorMap = {
-  progress: "text-primary",
-  completed: "text-success",
-  active: "text-warning",
-  blocked: "text-destructive",
+const getIconBgClasses = (iconType: Stat["icon"]) => {
+  switch (iconType) {
+    case "completed":
+      return "bg-green-500/20 text-green-400";
+    case "progress":
+      return "bg-primary/20 text-primary";
+    case "active":
+      return "bg-cyan-500/20 text-cyan-400";
+    case "blocked":
+      return "bg-red-500/20 text-red-400";
+    default:
+      return "bg-primary/20 text-primary";
+  }
 };
 
 export const StatsCards = ({ stats }: StatsCardsProps) => {
@@ -67,10 +75,7 @@ export const StatsCards = ({ stats }: StatsCardsProps) => {
             <div
               className={cn(
                 "p-3 rounded-xl glass smooth-transition group-hover:scale-110",
-                stat.icon === "completed" ? "bg-green-500/20 text-green-400" :
-                stat.icon === "progress" ? "bg-primary/20 text-primary" :
-                stat.icon === "active" ? "bg-yellow-500/20 text-yellow-400" :
-                "bg-red-500/20 text-red-400"
+                getIconBgClasses(stat.icon)
               )}
             >
               {getIcon(stat.icon)}
