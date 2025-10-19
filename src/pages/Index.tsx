@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SDLCPipeline } from "@/components/SDLCPipeline";
 import { TaskList, Task } from "@/components/TaskList";
 import { StatsCards } from "@/components/StatsCards";
+import { ProjectManager } from "@/components/ProjectManager";
 import { Sparkles, Zap, BarChart3, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +13,122 @@ import { supabase } from "@/integrations/supabase/client";
 const Index = () => {
   const { toast } = useToast();
   const [selectedPhase, setSelectedPhase] = useState<string>("all");
+  const [stats, setStats] = useState<Array<{
+    label: string;
+    value: string;
+    change: string;
+    trend: "up" | "down" | "neutral";
+    icon: "progress" | "completed" | "active" | "blocked";
+  }>>([
+    {
+      label: "Active Projects",
+      value: "0",
+      change: "+0 new",
+      trend: "neutral",
+      icon: "active",
+    },
+    {
+      label: "Completed Tasks",
+      value: "0",
+      change: "+0 today",
+      trend: "neutral",
+      icon: "completed",
+    },
+    {
+      label: "In Progress",
+      value: "0",
+      change: "0 critical",
+      trend: "neutral",
+      icon: "progress",
+    },
+    {
+      label: "Test Coverage",
+      value: "0%",
+      change: "+0% this week",
+      trend: "neutral",
+      icon: "completed",
+    },
+  ]);
+
+  useEffect(() => {
+    loadStats();
+
+    // Real-time subscription for stats updates
+    const channel = supabase
+      .channel('stats-updates')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'projects'
+      }, () => {
+        loadStats();
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'test_cases'
+      }, () => {
+        loadStats();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const loadStats = async () => {
+    try {
+      const { data, error } = await supabase.rpc('get_project_stats');
+      
+      if (error) throw error;
+
+      if (data && typeof data === 'object') {
+        const statsData = data as any;
+        
+        setStats([
+          {
+            label: "Active Projects",
+            value: String(statsData.active_projects || 0),
+            change: `${statsData.active_projects > 0 ? '+' : ''}${statsData.active_projects} active`,
+            trend: statsData.active_projects > 0 ? "up" : "neutral",
+            icon: "active",
+          },
+          {
+            label: "Completed Tasks",
+            value: String(statsData.completed_tasks || 0),
+            change: `${statsData.completed_tasks} approved`,
+            trend: statsData.completed_tasks > 0 ? "up" : "neutral",
+            icon: "completed",
+          },
+          {
+            label: "In Progress",
+            value: String(statsData.in_progress || 0),
+            change: `${statsData.in_progress} drafts`,
+            trend: "neutral",
+            icon: "progress",
+          },
+          {
+            label: "Test Coverage",
+            value: `${Number(statsData.avg_test_coverage || 0).toFixed(0)}%`,
+            change: `Avg across projects`,
+            trend: statsData.avg_test_coverage > 75 ? "up" : statsData.avg_test_coverage > 50 ? "neutral" : "down",
+            icon: "completed",
+          },
+        ]);
+      }
+    } catch (error) {
+      console.error('Error loading stats:', error);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    toast({
+      title: "Signed out",
+      description: "You have been signed out successfully",
+    });
+  };
 
   const [phases, setPhases] = useState([
     {
@@ -123,37 +240,6 @@ const Index = () => {
     },
   ]);
 
-  const stats = [
-    {
-      label: "Active Projects",
-      value: "8",
-      change: "+2 new",
-      trend: "up" as const,
-      icon: "active" as const,
-    },
-    {
-      label: "Completed Tasks",
-      value: "156",
-      change: "+23 today",
-      trend: "up" as const,
-      icon: "completed" as const,
-    },
-    {
-      label: "In Progress",
-      value: "24",
-      change: "12 critical",
-      trend: "neutral" as const,
-      icon: "progress" as const,
-    },
-    {
-      label: "Test Coverage",
-      value: "87%",
-      change: "+5% this week",
-      trend: "up" as const,
-      icon: "completed" as const,
-    },
-  ];
-
   const [isGenerating, setIsGenerating] = useState(false);
 
   const handleGenerateTasks = async () => {
@@ -187,20 +273,12 @@ const Index = () => {
       console.error('Error generating tasks:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to generate tasks. Please try again.",
+        description: "Failed to generate tasks. Please try again.",
         variant: "destructive",
       });
     } finally {
       setIsGenerating(false);
     }
-  };
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    toast({
-      title: "Signed out",
-      description: "You have been signed out successfully",
-    });
   };
 
   const handlePhaseClick = (phase: any) => {
@@ -292,8 +370,13 @@ const Index = () => {
           <StatsCards stats={stats} />
         </div>
 
+        {/* Projects Section */}
+        <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
+          <ProjectManager />
+        </div>
+
         {/* SDLC Pipeline */}
-        <div className="space-y-4 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+        <div className="space-y-4 animate-fade-in" style={{ animationDelay: '0.2s' }}>
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold gradient-text">Development Pipeline</h2>
@@ -306,7 +389,7 @@ const Index = () => {
         </div>
 
         {/* Tasks */}
-        <Card className="p-6 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+        <Card className="p-6 animate-fade-in" style={{ animationDelay: '0.3s' }}>
           <Tabs defaultValue="all" value={selectedPhase} onValueChange={setSelectedPhase}>
             <div className="flex items-center justify-between mb-6">
               <div>

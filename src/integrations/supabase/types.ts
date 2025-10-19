@@ -116,6 +116,42 @@ export type Database = {
         }
         Relationships: []
       }
+      projects: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+          status: string
+          test_coverage: number | null
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          status?: string
+          test_coverage?: number | null
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          status?: string
+          test_coverage?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       test_cases: {
         Row: {
           automated: boolean | null
@@ -127,6 +163,7 @@ export type Database = {
           last_executed_at: string | null
           phase: string
           priority: string
+          project_id: string | null
           status: string
           steps: string[]
           tags: string[] | null
@@ -143,6 +180,7 @@ export type Database = {
           last_executed_at?: string | null
           phase: string
           priority: string
+          project_id?: string | null
           status?: string
           steps?: string[]
           tags?: string[] | null
@@ -159,13 +197,22 @@ export type Database = {
           last_executed_at?: string | null
           phase?: string
           priority?: string
+          project_id?: string | null
           status?: string
           steps?: string[]
           tags?: string[] | null
           title?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "test_cases_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       test_runs: {
         Row: {
@@ -231,7 +278,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_project_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
