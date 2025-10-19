@@ -406,7 +406,7 @@ const Index = () => {
               </div>
               <div>
                 <h1 className="text-2xl font-bold gradient-text">
-                  SDLC Automation
+                  Settings Automation
                 </h1>
                 <p className="text-sm text-muted-foreground">
                   Intelligent development lifecycle management
