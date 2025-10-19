@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileUploadZone } from "@/components/qa/FileUploadZone";
 import { AutomatedTestList } from "@/components/qa/AutomatedTestList";
 import { TestExecutionDashboard } from "@/components/qa/TestExecutionDashboard";
+import { TestReportsLibrary } from "@/components/qa/TestReportsLibrary";
 import { Sparkles, PlayCircle, LogOut, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -138,10 +139,11 @@ const AutomatedQA = () => {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="upload" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="upload">Upload & Generate</TabsTrigger>
             <TabsTrigger value="tests">Generated Tests</TabsTrigger>
             <TabsTrigger value="execution">Test Execution</TabsTrigger>
+            <TabsTrigger value="reports">STR Reports</TabsTrigger>
           </TabsList>
 
           <TabsContent value="upload" className="space-y-6">
@@ -195,6 +197,10 @@ const AutomatedQA = () => {
 
           <TabsContent value="execution" className="space-y-6">
             <TestExecutionDashboard />
+          </TabsContent>
+
+          <TabsContent value="reports" className="space-y-6">
+            <TestReportsLibrary />
           </TabsContent>
         </Tabs>
       </main>

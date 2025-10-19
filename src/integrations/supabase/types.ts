@@ -172,33 +172,48 @@ export type Database = {
           duration_ms: number | null
           executed_at: string
           executed_by: string | null
+          github_artifact_url: string | null
           id: string
+          jira_attachment_id: string | null
           notes: string | null
+          report_url: string | null
           result: string | null
           screenshots: string[] | null
           status: string
+          synced_to_github: boolean | null
+          synced_to_jira: boolean | null
           test_case_id: string
         }
         Insert: {
           duration_ms?: number | null
           executed_at?: string
           executed_by?: string | null
+          github_artifact_url?: string | null
           id?: string
+          jira_attachment_id?: string | null
           notes?: string | null
+          report_url?: string | null
           result?: string | null
           screenshots?: string[] | null
           status: string
+          synced_to_github?: boolean | null
+          synced_to_jira?: boolean | null
           test_case_id: string
         }
         Update: {
           duration_ms?: number | null
           executed_at?: string
           executed_by?: string | null
+          github_artifact_url?: string | null
           id?: string
+          jira_attachment_id?: string | null
           notes?: string | null
+          report_url?: string | null
           result?: string | null
           screenshots?: string[] | null
           status?: string
+          synced_to_github?: boolean | null
+          synced_to_jira?: boolean | null
           test_case_id?: string
         }
         Relationships: [

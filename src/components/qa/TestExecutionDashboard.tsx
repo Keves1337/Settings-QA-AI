@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { PlayCircle, RefreshCw, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { PlayCircle, RefreshCw, CheckCircle2, XCircle, Clock, FileText, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -38,27 +38,65 @@ export const TestExecutionDashboard = () => {
     setIsRunning(true);
     toast({
       title: "Running Tests",
-      description: "Executing all automated tests...",
+      description: "Executing all automated tests and generating STR reports...",
     });
 
     try {
       for (const testCase of testCases) {
         // Simulate test execution
-        const result = Math.random() > 0.2 ? 'passed' : 'failed';
+        const status = Math.random() > 0.2 ? 'passed' : 'failed';
+        const duration = Math.floor(Math.random() * 5000) + 1000;
+        const resultText = status === 'passed' 
+          ? 'All test steps passed successfully' 
+          : 'Test failed at step 2';
         
-        await supabase.from('test_runs').insert({
-          test_case_id: testCase.id,
-          status: result,
-          result: result === 'passed' ? 'All test steps passed successfully' : 'Test failed at step 2',
-          duration_ms: Math.floor(Math.random() * 5000) + 1000,
-        });
+        // Create test run
+        const { data: testRun, error: insertError } = await supabase
+          .from('test_runs')
+          .insert({
+            test_case_id: testCase.id,
+            status,
+            result: resultText,
+            duration_ms: duration,
+          })
+          .select()
+          .single();
+
+        if (insertError || !testRun) {
+          console.error('Error creating test run:', insertError);
+          continue;
+        }
+
+        // Generate STR report
+        try {
+          const { data: reportData, error: reportError } = await supabase.functions.invoke(
+            'generate-test-report',
+            {
+              body: {
+                testRunId: testRun.id,
+                testCase,
+                result: { status, result: resultText },
+                duration,
+                timestamp: new Date().toISOString(),
+              },
+            }
+          );
+
+          if (reportError) {
+            console.error('Error generating report:', reportError);
+          } else {
+            console.log('Report generated:', reportData.fileName);
+          }
+        } catch (reportErr) {
+          console.error('Report generation failed:', reportErr);
+        }
       }
 
       await loadData();
       
       toast({
         title: "Tests Complete!",
-        description: "All automated tests have been executed",
+        description: "All tests executed with STR reports synced to Jira & GitHub",
       });
     } catch (error) {
       console.error('Error running tests:', error);
@@ -165,9 +203,29 @@ export const TestExecutionDashboard = () => {
                   ) : (
                     <XCircle className="w-5 h-5 text-red-500" />
                   )}
-                  <div>
+                  <div className="flex-1">
                     <p className="font-medium">Test Case #{run.test_case_id.slice(0, 8)}</p>
                     <p className="text-sm text-muted-foreground">{run.result}</p>
+                    {run.report_url && (
+                      <div className="flex items-center gap-2 mt-1">
+                        <FileText className="w-3 h-3 text-primary" />
+                        <a 
+                          href={run.report_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-xs text-primary hover:underline flex items-center gap-1"
+                        >
+                          View STR Report
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                        {run.synced_to_jira && (
+                          <Badge variant="outline" className="text-xs">Jira ✓</Badge>
+                        )}
+                        {run.synced_to_github && (
+                          <Badge variant="outline" className="text-xs">GitHub ✓</Badge>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
