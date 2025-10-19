@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,12 +20,15 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Github, FileText, ExternalLink } from "lucide-react";
+import { Plus, Github, FileText, ExternalLink, Camera, X } from "lucide-react";
 
 export const BugTracker = () => {
   const { toast } = useToast();
   const [bugs, setBugs] = useState<any[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [screenshots, setScreenshots] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [newBug, setNewBug] = useState({
     title: "",
     description: "",
@@ -50,6 +53,40 @@ export const BugTracker = () => {
     loadBugs();
   }, []);
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    const newScreenshots: string[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const reader = new FileReader();
+      
+      await new Promise((resolve) => {
+        reader.onloadend = () => {
+          if (reader.result) {
+            newScreenshots.push(reader.result as string);
+          }
+          resolve(null);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    setScreenshots([...screenshots, ...newScreenshots]);
+    setIsUploading(false);
+    toast({
+      title: "Success",
+      description: `Added ${newScreenshots.length} screenshot(s)`,
+    });
+  };
+
+  const removeScreenshot = (index: number) => {
+    setScreenshots(screenshots.filter((_, i) => i !== index));
+  };
+
   const createBug = async () => {
     if (!newBug.title || !newBug.description) {
       toast({
@@ -72,26 +109,49 @@ export const BugTracker = () => {
         description: "Failed to create bug",
         variant: "destructive",
       });
-    } else {
-      toast({
-        title: "Success",
-        description: "Bug created successfully",
-      });
-      setIsDialogOpen(false);
-      setNewBug({
-        title: "",
-        description: "",
-        severity: "medium",
-        status: "open",
-        steps_to_reproduce: "",
-        environment: "",
-      });
-      loadBugs();
+      return;
+    }
 
-      // Auto-sync if enabled
-      if (bugData) {
-        await autoSyncBug(bugData.id);
+    // Upload screenshots if any
+    if (screenshots.length > 0 && bugData) {
+      for (let i = 0; i < screenshots.length; i++) {
+        const { error: screenshotError } = await supabase.functions.invoke(
+          "capture-bug-screenshot",
+          {
+            body: {
+              bugId: bugData.id,
+              screenshotBase64: screenshots[i],
+              fileName: `screenshot-${i + 1}.png`,
+            },
+          }
+        );
+
+        if (screenshotError) {
+          console.error("Failed to upload screenshot:", screenshotError);
+        }
       }
+    }
+
+    toast({
+      title: "Success",
+      description: "Bug created successfully with screenshots",
+    });
+    
+    setIsDialogOpen(false);
+    setNewBug({
+      title: "",
+      description: "",
+      severity: "medium",
+      status: "open",
+      steps_to_reproduce: "",
+      environment: "",
+    });
+    setScreenshots([]);
+    loadBugs();
+
+    // Auto-sync if enabled
+    if (bugData) {
+      await autoSyncBug(bugData.id);
     }
   };
 
@@ -280,7 +340,55 @@ export const BugTracker = () => {
                   className="mt-1"
                 />
               </div>
-              <Button onClick={createBug} className="w-full">
+              
+              <div>
+                <label className="text-sm font-medium">Screenshots</label>
+                <div className="mt-1">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                    className="w-full gap-2"
+                  >
+                    <Camera className="w-4 h-4" />
+                    {isUploading ? "Uploading..." : "Add Screenshots"}
+                  </Button>
+                </div>
+                
+                {screenshots.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2 mt-2">
+                    {screenshots.map((screenshot, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={screenshot}
+                          alt={`Screenshot ${index + 1}`}
+                          className="w-full h-24 object-cover rounded border"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => removeScreenshot(index)}
+                          className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              <Button onClick={createBug} className="w-full" disabled={isUploading}>
                 Create Bug
               </Button>
             </div>
@@ -320,9 +428,34 @@ export const BugTracker = () => {
                   </div>
                 )}
                 {bug.environment && (
-                  <p className="text-sm">
+                  <p className="text-sm mb-2">
                     <span className="font-medium">Environment:</span> {bug.environment}
                   </p>
+                )}
+                {bug.screenshots && bug.screenshots.length > 0 && (
+                  <div className="mb-2">
+                    <p className="text-sm font-medium mb-2">Screenshots:</p>
+                    <div className="grid grid-cols-4 gap-2">
+                      {bug.screenshots.map((screenshot: string, index: number) => (
+                        <a
+                          key={index}
+                          href={screenshot}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="relative group"
+                        >
+                          <img
+                            src={screenshot}
+                            alt={`Bug screenshot ${index + 1}`}
+                            className="w-full h-20 object-cover rounded border hover:border-primary transition-colors"
+                          />
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded flex items-center justify-center">
+                            <ExternalLink className="w-4 h-4 text-white" />
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
               <div className="flex gap-2">

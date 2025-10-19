@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,43 +12,35 @@ serve(async (req) => {
   }
 
   try {
-    const { files } = await req.json();
-    
-    if (!files || files.length === 0) {
-      return new Response(
-        JSON.stringify({ error: 'No files provided' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
+    const { projectFiles, deepAnalysis = true } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    // Prepare file analysis context
-    const fileContext = files.map((file: any) => 
-      `File: ${file.name}\nType: ${file.type}\n\n${file.content.substring(0, 2000)}`
-    ).join('\n\n---\n\n');
+    // Prepare project context for AI analysis
+    const fileContext = projectFiles.map((file: any) => 
+      `File: ${file.path}\n${file.content}`
+    ).join('\n\n');
 
-    const systemPrompt = `You are an expert QA automation engineer. Analyze the provided code files and generate comprehensive, automated test cases.
+    const systemPrompt = `You are an expert QA engineer analyzing code for bugs, security issues, and quality problems.
+Analyze the provided code comprehensively and identify:
+1. Security vulnerabilities (SQL injection, XSS, authentication issues)
+2. Logic errors and potential runtime bugs
+3. Performance issues
+4. Code quality and maintainability concerns
+5. Missing error handling
+6. Accessibility issues
+7. Edge cases not handled
 
-For each test case, provide:
-1. A clear, descriptive title
-2. Detailed description of what's being tested
-3. Step-by-step test instructions
-4. Expected results
-5. Priority (high/medium/low)
-6. SDLC phase (Requirements/Design/Development/Testing/Deployment/Maintenance)
-
-Focus on:
-- Unit tests for functions and components
-- Integration tests for API endpoints
-- UI/UX tests for user interactions
-- Edge cases and error handling
-- Security and performance considerations
-
-Generate 5-10 high-quality test cases based on the code structure.`;
+For each issue found, provide:
+- Type (security/logic/performance/quality/accessibility)
+- Severity (critical/high/medium/low)
+- Description (clear explanation)
+- Location (file:line)
+- Recommendation (how to fix)
+- Impact (what could go wrong)`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -59,46 +52,40 @@ Generate 5-10 high-quality test cases based on the code structure.`;
         model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Analyze these code files and generate automated test cases:\n\n${fileContext}` }
+          { role: 'user', content: `Analyze this codebase:\n\n${fileContext}` }
         ],
         tools: [{
           type: 'function',
           function: {
-            name: 'generate_test_cases',
-            description: 'Generate automated test cases from code analysis',
+            name: 'report_analysis',
+            description: 'Report comprehensive code analysis results',
             parameters: {
               type: 'object',
               properties: {
-                testCases: {
+                issues: {
                   type: 'array',
                   items: {
                     type: 'object',
                     properties: {
-                      title: { type: 'string' },
+                      type: { type: 'string', enum: ['security', 'logic', 'performance', 'quality', 'accessibility'] },
+                      severity: { type: 'string', enum: ['critical', 'high', 'medium', 'low'] },
                       description: { type: 'string' },
-                      steps: {
-                        type: 'array',
-                        items: { type: 'string' }
-                      },
-                      expectedResult: { type: 'string' },
-                      priority: { 
-                        type: 'string',
-                        enum: ['high', 'medium', 'low']
-                      },
-                      phase: { 
-                        type: 'string',
-                        enum: ['Requirements', 'Design', 'Development', 'Testing', 'Deployment', 'Maintenance']
-                      }
+                      location: { type: 'string' },
+                      recommendation: { type: 'string' },
+                      impact: { type: 'string' }
                     },
-                    required: ['title', 'description', 'steps', 'expectedResult', 'priority', 'phase']
+                    required: ['type', 'severity', 'description', 'location', 'recommendation', 'impact']
                   }
-                }
+                },
+                suggestions: { type: 'array', items: { type: 'string' } },
+                testCoverage: { type: 'number' },
+                complexity: { type: 'string', enum: ['low', 'medium', 'high', 'very-high'] }
               },
-              required: ['testCases']
+              required: ['issues', 'suggestions', 'complexity']
             }
           }
         }],
-        tool_choice: { type: 'function', function: { name: 'generate_test_cases' } }
+        tool_choice: { type: 'function', function: { name: 'report_analysis' } }
       })
     });
 
@@ -123,22 +110,23 @@ Generate 5-10 high-quality test cases based on the code structure.`;
     }
 
     const data = await response.json();
-    
-    let testCases = [];
-    if (data.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments) {
-      const args = JSON.parse(data.choices[0].message.tool_calls[0].function.arguments);
-      testCases = args.testCases || [];
-    }
+    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    const analysis = toolCall ? JSON.parse(toolCall.function.arguments) : {
+      issues: [],
+      suggestions: ['Enable AI analysis for detailed insights'],
+      complexity: 'unknown'
+    };
+
+    console.log('Analysis completed:', analysis);
 
     return new Response(
-      JSON.stringify({ testCases }),
+      JSON.stringify(analysis),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error analyzing project:', error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error' }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

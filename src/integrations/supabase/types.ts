@@ -25,6 +25,7 @@ export type Database = {
           id: string
           jira_issue_key: string | null
           resolved_at: string | null
+          screenshots: string[] | null
           severity: string
           status: string
           steps_to_reproduce: string | null
@@ -43,6 +44,7 @@ export type Database = {
           id?: string
           jira_issue_key?: string | null
           resolved_at?: string | null
+          screenshots?: string[] | null
           severity: string
           status?: string
           steps_to_reproduce?: string | null
@@ -61,6 +63,7 @@ export type Database = {
           id?: string
           jira_issue_key?: string | null
           resolved_at?: string | null
+          screenshots?: string[] | null
           severity?: string
           status?: string
           steps_to_reproduce?: string | null

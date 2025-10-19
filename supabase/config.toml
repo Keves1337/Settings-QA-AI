@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.generate-test-report]
 verify_jwt = false
+
+[functions.capture-bug-screenshot]
+verify_jwt = false
