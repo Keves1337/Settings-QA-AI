@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SDLCPipeline } from "@/components/SDLCPipeline";
 import { TaskList, Task } from "@/components/TaskList";
 import { StatsCards } from "@/components/StatsCards";
-import { Sparkles, Zap, BarChart3 } from "lucide-react";
+import { Sparkles, Zap, BarChart3, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -195,6 +195,14 @@ const Index = () => {
     }
   };
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    toast({
+      title: "Signed out",
+      description: "You have been signed out successfully",
+    });
+  };
+
   const handlePhaseClick = (phase: any) => {
     setSelectedPhase(phase.id);
     toast({
@@ -254,10 +262,24 @@ const Index = () => {
               <Button 
                 variant="outline" 
                 className="gap-2"
+                onClick={() => window.location.href = '/automated-qa'}
+              >
+                <Sparkles className="w-4 h-4" />
+                Automated QA
+              </Button>
+              <Button 
+                variant="outline" 
+                className="gap-2"
                 onClick={() => window.location.href = '/qa-testing'}
               >
                 <BarChart3 className="w-4 h-4" />
-                QA Testing
+                QA Settings
+              </Button>
+              <Button 
+                variant="ghost"
+                onClick={handleSignOut}
+              >
+                <LogOut className="w-4 h-4" />
               </Button>
             </div>
           </div>

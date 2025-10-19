@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AuthForm } from "@/components/auth/AuthForm";
 import Index from "./pages/Index";
 import QATesting from "./pages/QATesting";
+import AutomatedQA from "./pages/AutomatedQA";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -56,6 +57,7 @@ const App = () => {
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/qa-testing" element={<QATesting />} />
+            <Route path="/automated-qa" element={<AutomatedQA />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.sync-github]
 verify_jwt = false
+
+[functions.analyze-project-qa]
+verify_jwt = false
