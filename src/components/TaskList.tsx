@@ -11,6 +11,8 @@ export interface Task {
   priority: "low" | "medium" | "high";
   status: "todo" | "in-progress" | "done";
   phase: string;
+  sprint?: string;
+  story_points?: number;
 }
 
 interface TaskListProps {
@@ -79,9 +81,21 @@ export const TaskList = ({ tasks, onTaskToggle }: TaskListProps) => {
                 </div>
               </div>
               <p className="text-sm text-muted-foreground">{task.description}</p>
-              <Badge variant="secondary" className="text-xs">
-                {task.phase}
-              </Badge>
+              <div className="flex gap-2 flex-wrap">
+                <Badge variant="secondary" className="text-xs">
+                  {task.phase}
+                </Badge>
+                {task.sprint && (
+                  <Badge variant="outline" className="text-xs">
+                    Sprint: {task.sprint}
+                  </Badge>
+                )}
+                {task.story_points && (
+                  <Badge variant="outline" className="text-xs">
+                    {task.story_points} points
+                  </Badge>
+                )}
+              </div>
             </div>
           </div>
         </Card>

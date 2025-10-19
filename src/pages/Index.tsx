@@ -224,6 +224,8 @@ const Index = () => {
           priority: task.priority as "low" | "medium" | "high",
           status: task.status === 'approved' ? 'done' : task.status === 'draft' ? 'todo' : 'in-progress',
           phase: task.phase,
+          sprint: task.sprint || undefined,
+          story_points: task.story_points || undefined,
         }));
         setTasks(mappedTasks);
       }

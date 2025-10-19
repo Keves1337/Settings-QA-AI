@@ -17,6 +17,7 @@ interface Project {
   status: string;
   test_coverage: number;
   created_at: string;
+  methodology?: string;
 }
 
 export const ProjectManager = () => {
@@ -29,6 +30,7 @@ export const ProjectManager = () => {
     description: "",
     test_coverage: 0,
     phase: "planning",
+    methodology: "waterfall",
   });
 
   useEffect(() => {
@@ -83,6 +85,7 @@ export const ProjectManager = () => {
         description: newProject.description,
         test_coverage: newProject.test_coverage,
         phase: newProject.phase,
+        methodology: newProject.methodology,
         status: 'active',
       });
 
@@ -93,7 +96,7 @@ export const ProjectManager = () => {
         description: "Project created successfully",
       });
 
-      setNewProject({ name: "", description: "", test_coverage: 0, phase: "planning" });
+      setNewProject({ name: "", description: "", test_coverage: 0, phase: "planning", methodology: "waterfall" });
       setIsDialogOpen(false);
     } catch (error) {
       console.error('Error creating project:', error);
@@ -199,6 +202,21 @@ export const ProjectManager = () => {
                 />
               </div>
               <div>
+                <label className="text-sm font-medium">Methodology</label>
+                <Select 
+                  value={newProject.methodology} 
+                  onValueChange={(value) => setNewProject({ ...newProject, methodology: value })}
+                >
+                  <SelectTrigger className="mt-1 glass">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="glass-premium">
+                    <SelectItem value="waterfall">Waterfall</SelectItem>
+                    <SelectItem value="agile">Agile</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
                 <label className="text-sm font-medium">SDLC Phase</label>
                 <Select 
                   value={newProject.phase} 
@@ -245,7 +263,12 @@ export const ProjectManager = () => {
               <div className="space-y-4">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h3 className="font-semibold text-lg mb-1">{project.name}</h3>
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold text-lg">{project.name}</h3>
+                      <Badge variant="outline" className="text-xs">
+                        {project.methodology || 'waterfall'}
+                      </Badge>
+                    </div>
                     <p className="text-sm text-muted-foreground line-clamp-2">
                       {project.description || "No description"}
                     </p>

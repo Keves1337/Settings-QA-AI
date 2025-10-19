@@ -123,6 +123,7 @@ export type Database = {
           created_by: string | null
           description: string | null
           id: string
+          methodology: string | null
           name: string
           phase: string | null
           status: string
@@ -135,6 +136,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           id?: string
+          methodology?: string | null
           name: string
           phase?: string | null
           status?: string
@@ -147,6 +149,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           id?: string
+          methodology?: string | null
           name?: string
           phase?: string | null
           status?: string
@@ -167,8 +170,10 @@ export type Database = {
           phase: string
           priority: string
           project_id: string | null
+          sprint: string | null
           status: string
           steps: string[]
+          story_points: number | null
           tags: string[] | null
           title: string
           updated_at: string
@@ -184,8 +189,10 @@ export type Database = {
           phase: string
           priority: string
           project_id?: string | null
+          sprint?: string | null
           status?: string
           steps?: string[]
+          story_points?: number | null
           tags?: string[] | null
           title: string
           updated_at?: string
@@ -201,8 +208,10 @@ export type Database = {
           phase?: string
           priority?: string
           project_id?: string | null
+          sprint?: string | null
           status?: string
           steps?: string[]
+          story_points?: number | null
           tags?: string[] | null
           title?: string
           updated_at?: string
