@@ -481,11 +481,15 @@ const Index = () => {
                   {filteredTasks.length} tasks
                 </p>
               </div>
-              <TabsList>
+              <TabsList className="flex flex-wrap h-auto">
                 <TabsTrigger value="all">All</TabsTrigger>
+                <TabsTrigger value="planning">Planning</TabsTrigger>
+                <TabsTrigger value="requirements">Requirements</TabsTrigger>
                 <TabsTrigger value="design">Design</TabsTrigger>
                 <TabsTrigger value="development">Development</TabsTrigger>
                 <TabsTrigger value="testing">Testing</TabsTrigger>
+                <TabsTrigger value="deployment">Deployment</TabsTrigger>
+                <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
               </TabsList>
             </div>
             <TabsContent value={selectedPhase} className="mt-0">
