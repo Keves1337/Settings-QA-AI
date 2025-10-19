@@ -15,12 +15,14 @@ export const IntegrationSettings = () => {
     apiToken: "",
     projectKey: "",
     enabled: false,
+    autoSync: false,
   });
   const [githubConfig, setGithubConfig] = useState({
     token: "",
     owner: "",
     repo: "",
     enabled: false,
+    autoSync: false,
   });
 
   useEffect(() => {
@@ -43,6 +45,7 @@ export const IntegrationSettings = () => {
         apiToken: config.apiToken || "",
         projectKey: config.projectKey || "",
         enabled: jiraData.enabled,
+        autoSync: config.autoSync || false,
       });
     }
 
@@ -60,6 +63,7 @@ export const IntegrationSettings = () => {
         owner: config.owner || "",
         repo: config.repo || "",
         enabled: githubData.enabled,
+        autoSync: config.autoSync || false,
       });
     }
   };
@@ -76,6 +80,7 @@ export const IntegrationSettings = () => {
       email: jiraConfig.email,
       apiToken: jiraConfig.apiToken,
       projectKey: jiraConfig.projectKey,
+      autoSync: jiraConfig.autoSync,
     };
 
     if (existing) {
@@ -124,6 +129,7 @@ export const IntegrationSettings = () => {
       token: githubConfig.token,
       owner: githubConfig.owner,
       repo: githubConfig.repo,
+      autoSync: githubConfig.autoSync,
     };
 
     if (existing) {
@@ -226,6 +232,20 @@ export const IntegrationSettings = () => {
               className="mt-1"
             />
           </div>
+          <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div>
+              <label className="text-sm font-medium">Auto-sync bugs to Jira</label>
+              <p className="text-xs text-muted-foreground">
+                Automatically create Jira issues when bugs are reported
+              </p>
+            </div>
+            <Switch
+              checked={jiraConfig.autoSync}
+              onCheckedChange={(checked) =>
+                setJiraConfig({ ...jiraConfig, autoSync: checked })
+              }
+            />
+          </div>
           <Button onClick={saveJiraIntegration} className="gap-2">
             <Save className="w-4 h-4" />
             Save Jira Settings
@@ -285,6 +305,20 @@ export const IntegrationSettings = () => {
               value={githubConfig.repo}
               onChange={(e) => setGithubConfig({ ...githubConfig, repo: e.target.value })}
               className="mt-1"
+            />
+          </div>
+          <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div>
+              <label className="text-sm font-medium">Auto-sync bugs to GitHub</label>
+              <p className="text-xs text-muted-foreground">
+                Automatically create GitHub issues when bugs are reported
+              </p>
+            </div>
+            <Switch
+              checked={githubConfig.autoSync}
+              onCheckedChange={(checked) =>
+                setGithubConfig({ ...githubConfig, autoSync: checked })
+              }
             />
           </div>
           <Button onClick={saveGitHubIntegration} className="gap-2">

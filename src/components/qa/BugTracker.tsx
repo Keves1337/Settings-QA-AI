@@ -60,7 +60,11 @@ export const BugTracker = () => {
       return;
     }
 
-    const { error } = await supabase.from("bugs").insert(newBug);
+    const { data: bugData, error } = await supabase
+      .from("bugs")
+      .insert(newBug)
+      .select()
+      .single();
 
     if (error) {
       toast({
@@ -83,6 +87,43 @@ export const BugTracker = () => {
         environment: "",
       });
       loadBugs();
+
+      // Auto-sync if enabled
+      if (bugData) {
+        await autoSyncBug(bugData.id);
+      }
+    }
+  };
+
+  const autoSyncBug = async (bugId: string) => {
+    // Check Jira auto-sync
+    const { data: jiraData } = await supabase
+      .from("integrations")
+      .select("*")
+      .eq("type", "jira")
+      .eq("enabled", true)
+      .single();
+
+    if (jiraData) {
+      const config = jiraData.config as any;
+      if (config.autoSync) {
+        await syncToJira(bugId);
+      }
+    }
+
+    // Check GitHub auto-sync
+    const { data: githubData } = await supabase
+      .from("integrations")
+      .select("*")
+      .eq("type", "github")
+      .eq("enabled", true)
+      .single();
+
+    if (githubData) {
+      const config = githubData.config as any;
+      if (config.autoSync) {
+        await syncToGitHub(bugId);
+      }
     }
   };
 
