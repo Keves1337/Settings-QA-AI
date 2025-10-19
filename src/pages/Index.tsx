@@ -409,7 +409,7 @@ const Index = () => {
                   Settings Automation
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  Intelligent development lifecycle management
+                  Making life AI-sier, one automation at a time
                 </p>
               </div>
             </div>
