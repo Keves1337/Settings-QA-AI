@@ -251,9 +251,13 @@ const Index = () => {
                 <Sparkles className="w-4 h-4" />
                 {isGenerating ? "Generating..." : "Generate Tasks with AI"}
               </Button>
-              <Button variant="outline" className="gap-2">
+              <Button 
+                variant="outline" 
+                className="gap-2"
+                onClick={() => window.location.href = '/qa-testing'}
+              >
                 <BarChart3 className="w-4 h-4" />
-                Analytics
+                QA Testing
               </Button>
             </div>
           </div>

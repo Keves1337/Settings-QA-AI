@@ -2,3 +2,12 @@ project_id = "fqxvnkzajsginyzgpafg"
 
 [functions.generate-tasks]
 verify_jwt = false
+
+[functions.generate-test-cases-qa]
+verify_jwt = false
+
+[functions.sync-jira]
+verify_jwt = false
+
+[functions.sync-github]
+verify_jwt = false

@@ -14,7 +14,203 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      bugs: {
+        Row: {
+          assignee: string | null
+          created_at: string
+          created_by: string | null
+          description: string
+          environment: string | null
+          github_issue_number: number | null
+          id: string
+          jira_issue_key: string | null
+          resolved_at: string | null
+          severity: string
+          status: string
+          steps_to_reproduce: string | null
+          test_case_id: string | null
+          test_run_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assignee?: string | null
+          created_at?: string
+          created_by?: string | null
+          description: string
+          environment?: string | null
+          github_issue_number?: number | null
+          id?: string
+          jira_issue_key?: string | null
+          resolved_at?: string | null
+          severity: string
+          status?: string
+          steps_to_reproduce?: string | null
+          test_case_id?: string | null
+          test_run_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assignee?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          environment?: string | null
+          github_issue_number?: number | null
+          id?: string
+          jira_issue_key?: string | null
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+          steps_to_reproduce?: string | null
+          test_case_id?: string | null
+          test_run_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bugs_test_case_id_fkey"
+            columns: ["test_case_id"]
+            isOneToOne: false
+            referencedRelation: "test_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bugs_test_run_id_fkey"
+            columns: ["test_run_id"]
+            isOneToOne: false
+            referencedRelation: "test_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integrations: {
+        Row: {
+          config: Json
+          created_at: string
+          created_by: string | null
+          enabled: boolean | null
+          id: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          config: Json
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean | null
+          id?: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean | null
+          id?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      test_cases: {
+        Row: {
+          automated: boolean | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          expected_result: string | null
+          id: string
+          last_executed_at: string | null
+          phase: string
+          priority: string
+          status: string
+          steps: string[]
+          tags: string[] | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          automated?: boolean | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          expected_result?: string | null
+          id?: string
+          last_executed_at?: string | null
+          phase: string
+          priority: string
+          status?: string
+          steps?: string[]
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          automated?: boolean | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          expected_result?: string | null
+          id?: string
+          last_executed_at?: string | null
+          phase?: string
+          priority?: string
+          status?: string
+          steps?: string[]
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      test_runs: {
+        Row: {
+          duration_ms: number | null
+          executed_at: string
+          executed_by: string | null
+          id: string
+          notes: string | null
+          result: string | null
+          screenshots: string[] | null
+          status: string
+          test_case_id: string
+        }
+        Insert: {
+          duration_ms?: number | null
+          executed_at?: string
+          executed_by?: string | null
+          id?: string
+          notes?: string | null
+          result?: string | null
+          screenshots?: string[] | null
+          status: string
+          test_case_id: string
+        }
+        Update: {
+          duration_ms?: number | null
+          executed_at?: string
+          executed_by?: string | null
+          id?: string
+          notes?: string | null
+          result?: string | null
+          screenshots?: string[] | null
+          status?: string
+          test_case_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "test_runs_test_case_id_fkey"
+            columns: ["test_case_id"]
+            isOneToOne: false
+            referencedRelation: "test_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
