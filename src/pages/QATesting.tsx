@@ -1,13 +1,26 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { TestCaseManager } from "@/components/qa/TestCaseManager";
 import { TestExecutionPanel } from "@/components/qa/TestExecutionPanel";
 import { BugTracker } from "@/components/qa/BugTracker";
 import { IntegrationSettings } from "@/components/qa/IntegrationSettings";
-import { FlaskConical, Play, Bug, Settings } from "lucide-react";
+import { FlaskConical, Play, Bug, Settings, LogOut } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const QATesting = () => {
+  const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    toast({
+      title: "Signed out",
+      description: "You have been signed out successfully",
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
@@ -26,6 +39,10 @@ const QATesting = () => {
                 </p>
               </div>
             </div>
+            <Button variant="outline" onClick={handleSignOut} className="gap-2">
+              <LogOut className="w-4 h-4" />
+              Sign Out
+            </Button>
           </div>
         </div>
       </header>
