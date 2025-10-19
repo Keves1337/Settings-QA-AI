@@ -6,7 +6,8 @@ import { FileUploadZone } from "@/components/qa/FileUploadZone";
 import { AutomatedTestList } from "@/components/qa/AutomatedTestList";
 import { TestExecutionDashboard } from "@/components/qa/TestExecutionDashboard";
 import { TestReportsLibrary } from "@/components/qa/TestReportsLibrary";
-import { Sparkles, PlayCircle, LogOut, Settings } from "lucide-react";
+import { FuzzTestingPanel } from "@/components/qa/FuzzTestingPanel";
+import { Sparkles, PlayCircle, LogOut, Settings, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -139,8 +140,12 @@ const AutomatedQA = () => {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="upload" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="upload">Upload & Generate</TabsTrigger>
+            <TabsTrigger value="fuzz" className="gap-2">
+              <Zap className="w-4 h-4" />
+              Fuzz Testing
+            </TabsTrigger>
             <TabsTrigger value="tests">Generated Tests</TabsTrigger>
             <TabsTrigger value="execution">Test Execution</TabsTrigger>
             <TabsTrigger value="reports">STR Reports</TabsTrigger>
@@ -173,6 +178,10 @@ const AutomatedQA = () => {
                 )}
               </div>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="fuzz" className="space-y-6">
+            <FuzzTestingPanel uploadedFiles={uploadedFiles} />
           </TabsContent>
 
           <TabsContent value="tests" className="space-y-6">

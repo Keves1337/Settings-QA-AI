@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.capture-bug-screenshot]
 verify_jwt = false
+
+[functions.fuzz-testing]
+verify_jwt = false
