@@ -78,13 +78,13 @@ export const AuthForm = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md p-6">
-        <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <Card className="w-full max-w-md p-8 glass-premium animate-fade-in">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold gradient-text mb-2">
             QA Testing Platform
           </h1>
-          <p className="text-muted-foreground mt-2">Sign in to manage your tests</p>
+          <p className="text-muted-foreground">Sign in to manage your tests</p>
         </div>
 
         <Tabs defaultValue="signin" className="w-full">

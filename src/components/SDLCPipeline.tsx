@@ -26,19 +26,20 @@ export const SDLCPipeline = ({ phases, onPhaseClick }: SDLCPipelineProps) => {
             key={phase.id}
             onClick={() => onPhaseClick(phase)}
             className={cn(
-              "p-6 cursor-pointer transition-all hover:shadow-lg hover:-translate-y-1",
-              phase.status === "active" && "ring-2 ring-primary shadow-[var(--shadow-glow)]",
-              phase.status === "completed" && "bg-gradient-to-br from-card to-success/5"
+              "p-6 cursor-pointer smooth-transition hover:scale-[1.02] group animate-fade-in",
+              phase.status === "active" && "ring-2 ring-primary glow",
+              phase.status === "completed" && "bg-gradient-to-br from-card to-success/10"
             )}
+            style={{ animationDelay: `${index * 0.05}s` }}
           >
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
-                <h3 className="font-semibold text-lg mb-1">{phase.name}</h3>
+                <h3 className="font-semibold text-lg mb-1 gradient-text">{phase.name}</h3>
                 <p className="text-sm text-muted-foreground">{phase.description}</p>
               </div>
               <div className="ml-2">
                 {phase.status === "completed" && (
-                  <CheckCircle2 className="w-6 h-6 text-success" />
+                  <CheckCircle2 className="w-6 h-6 text-success animate-fade-in" />
                 )}
                 {phase.status === "active" && (
                   <Clock className="w-6 h-6 text-primary animate-pulse" />
@@ -54,11 +55,11 @@ export const SDLCPipeline = ({ phases, onPhaseClick }: SDLCPipelineProps) => {
                 <span className="text-muted-foreground">Progress</span>
                 <span className="font-medium">{phase.progress}%</span>
               </div>
-              <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
+              <div className="w-full glass rounded-full h-2.5 overflow-hidden">
                 <div
                   className={cn(
-                    "h-full transition-all duration-500 rounded-full",
-                    phase.status === "completed" ? "bg-gradient-to-r from-success to-success" : "bg-gradient-to-r from-primary to-accent"
+                    "h-full smooth-transition rounded-full",
+                    phase.status === "completed" ? "bg-gradient-to-r from-success to-success" : "bg-gradient-to-r from-primary to-accent glow"
                   )}
                   style={{ width: `${phase.progress}%` }}
                 />
