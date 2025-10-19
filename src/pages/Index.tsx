@@ -53,6 +53,7 @@ const Index = () => {
   useEffect(() => {
     loadStats();
     loadPhases();
+    loadTasks();
 
     // Real-time subscription for stats updates
     const channel = supabase
@@ -72,6 +73,7 @@ const Index = () => {
       }, () => {
         loadStats();
         loadPhases();
+        loadTasks();
       })
       .subscribe();
 
@@ -205,6 +207,31 @@ const Index = () => {
     }
   };
 
+  const loadTasks = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('test_cases')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+
+      if (data) {
+        const mappedTasks: Task[] = data.map(task => ({
+          id: task.id,
+          title: task.title,
+          description: task.description || '',
+          priority: task.priority as "low" | "medium" | "high",
+          status: task.status === 'approved' ? 'done' : task.status === 'draft' ? 'todo' : 'in-progress',
+          phase: task.phase,
+        }));
+        setTasks(mappedTasks);
+      }
+    } catch (error) {
+      console.error('Error loading tasks:', error);
+    }
+  };
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     toast({
@@ -272,56 +299,7 @@ const Index = () => {
     },
   ]);
 
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: "1",
-      title: "Create database schema design",
-      description: "Design normalized database structure with relationships",
-      priority: "high",
-      status: "in-progress",
-      phase: "Design",
-    },
-    {
-      id: "2",
-      title: "Design API endpoints",
-      description: "Define RESTful API structure and documentation",
-      priority: "high",
-      status: "in-progress",
-      phase: "Design",
-    },
-    {
-      id: "3",
-      title: "Create wireframes for dashboard",
-      description: "Design user interface mockups for main dashboard",
-      priority: "medium",
-      status: "todo",
-      phase: "Design",
-    },
-    {
-      id: "4",
-      title: "Set up development environment",
-      description: "Configure local and staging environments",
-      priority: "high",
-      status: "done",
-      phase: "Development",
-    },
-    {
-      id: "5",
-      title: "Implement authentication system",
-      description: "Build secure user authentication with JWT",
-      priority: "high",
-      status: "todo",
-      phase: "Development",
-    },
-    {
-      id: "6",
-      title: "Write unit tests",
-      description: "Create comprehensive test suite for core features",
-      priority: "medium",
-      status: "todo",
-      phase: "Testing",
-    },
-  ]);
+  const [tasks, setTasks] = useState<Task[]>([]);
 
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -372,17 +350,39 @@ const Index = () => {
     });
   };
 
-  const handleTaskToggle = (taskId: string) => {
-    setTasks((prev) =>
-      prev.map((task) =>
-        task.id === taskId
-          ? {
-              ...task,
-              status: task.status === "done" ? "in-progress" : "done",
-            }
-          : task
-      )
-    );
+  const handleTaskToggle = async (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    const newStatus = task.status === "done" ? "draft" : "approved";
+    
+    try {
+      const { error } = await supabase
+        .from('test_cases')
+        .update({ status: newStatus })
+        .eq('id', taskId);
+
+      if (error) throw error;
+
+      // Optimistically update UI
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === taskId
+            ? {
+                ...t,
+                status: task.status === "done" ? "todo" : "done",
+              }
+            : t
+        )
+      );
+    } catch (error) {
+      console.error('Error updating task:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update task status",
+        variant: "destructive",
+      });
+    }
   };
 
   const filteredTasks =
