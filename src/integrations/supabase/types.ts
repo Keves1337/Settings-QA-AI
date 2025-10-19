@@ -124,6 +124,7 @@ export type Database = {
           description: string | null
           id: string
           name: string
+          phase: string | null
           status: string
           test_coverage: number | null
           updated_at: string
@@ -135,6 +136,7 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
+          phase?: string | null
           status?: string
           test_coverage?: number | null
           updated_at?: string
@@ -146,6 +148,7 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+          phase?: string | null
           status?: string
           test_coverage?: number | null
           updated_at?: string
@@ -278,6 +281,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_phase_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       get_project_stats: {
         Args: Record<PropertyKey, never>
         Returns: Json

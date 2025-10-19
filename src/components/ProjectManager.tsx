@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, CheckCircle2, Archive } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -27,6 +28,7 @@ export const ProjectManager = () => {
     name: "",
     description: "",
     test_coverage: 0,
+    phase: "planning",
   });
 
   useEffect(() => {
@@ -80,6 +82,7 @@ export const ProjectManager = () => {
         name: newProject.name,
         description: newProject.description,
         test_coverage: newProject.test_coverage,
+        phase: newProject.phase,
         status: 'active',
       });
 
@@ -90,7 +93,7 @@ export const ProjectManager = () => {
         description: "Project created successfully",
       });
 
-      setNewProject({ name: "", description: "", test_coverage: 0 });
+      setNewProject({ name: "", description: "", test_coverage: 0, phase: "planning" });
       setIsDialogOpen(false);
     } catch (error) {
       console.error('Error creating project:', error);
@@ -194,6 +197,26 @@ export const ProjectManager = () => {
                   onChange={(e) => setNewProject({ ...newProject, test_coverage: Number(e.target.value) })}
                   className="mt-1 glass"
                 />
+              </div>
+              <div>
+                <label className="text-sm font-medium">SDLC Phase</label>
+                <Select 
+                  value={newProject.phase} 
+                  onValueChange={(value) => setNewProject({ ...newProject, phase: value })}
+                >
+                  <SelectTrigger className="mt-1 glass">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="glass-premium">
+                    <SelectItem value="planning">Planning</SelectItem>
+                    <SelectItem value="requirements">Requirements</SelectItem>
+                    <SelectItem value="design">Design</SelectItem>
+                    <SelectItem value="development">Development</SelectItem>
+                    <SelectItem value="testing">Testing</SelectItem>
+                    <SelectItem value="deployment">Deployment</SelectItem>
+                    <SelectItem value="maintenance">Maintenance</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <Button onClick={handleCreateProject} className="w-full">
                 Create Project

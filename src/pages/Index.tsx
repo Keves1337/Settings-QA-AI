@@ -52,6 +52,7 @@ const Index = () => {
 
   useEffect(() => {
     loadStats();
+    loadPhases();
 
     // Real-time subscription for stats updates
     const channel = supabase
@@ -62,6 +63,7 @@ const Index = () => {
         table: 'projects'
       }, () => {
         loadStats();
+        loadPhases();
       })
       .on('postgres_changes', {
         event: '*',
@@ -69,6 +71,7 @@ const Index = () => {
         table: 'test_cases'
       }, () => {
         loadStats();
+        loadPhases();
       })
       .subscribe();
 
@@ -119,6 +122,86 @@ const Index = () => {
       }
     } catch (error) {
       console.error('Error loading stats:', error);
+    }
+  };
+
+  const loadPhases = async () => {
+    try {
+      const { data, error } = await supabase.rpc('get_phase_stats');
+      
+      if (error) throw error;
+
+      if (data && typeof data === 'object') {
+        const phaseData = data as any;
+        
+        // Determine status based on progress and active projects
+        const getPhaseStatus = (progress: number, projects: number) => {
+          if (progress === 100) return "completed";
+          if (projects > 0 || progress > 0) return "active";
+          return "pending";
+        };
+
+        setPhases([
+          {
+            id: "planning",
+            name: "Planning",
+            description: "Define scope and goals",
+            status: getPhaseStatus(phaseData.planning.progress, phaseData.planning.projects),
+            progress: phaseData.planning.progress || 0,
+            tasks: phaseData.planning.tasks || 0,
+          },
+          {
+            id: "requirements",
+            name: "Requirements",
+            description: "Gather specifications",
+            status: getPhaseStatus(phaseData.requirements.progress, phaseData.requirements.projects),
+            progress: phaseData.requirements.progress || 0,
+            tasks: phaseData.requirements.tasks || 0,
+          },
+          {
+            id: "design",
+            name: "Design",
+            description: "Create architecture",
+            status: getPhaseStatus(phaseData.design.progress, phaseData.design.projects),
+            progress: phaseData.design.progress || 0,
+            tasks: phaseData.design.tasks || 0,
+          },
+          {
+            id: "development",
+            name: "Development",
+            description: "Code implementation",
+            status: getPhaseStatus(phaseData.development.progress, phaseData.development.projects),
+            progress: phaseData.development.progress || 0,
+            tasks: phaseData.development.tasks || 0,
+          },
+          {
+            id: "testing",
+            name: "Testing",
+            description: "Quality assurance",
+            status: getPhaseStatus(phaseData.testing.progress, phaseData.testing.projects),
+            progress: phaseData.testing.progress || 0,
+            tasks: phaseData.testing.tasks || 0,
+          },
+          {
+            id: "deployment",
+            name: "Deployment",
+            description: "Release to production",
+            status: getPhaseStatus(phaseData.deployment.progress, phaseData.deployment.projects),
+            progress: phaseData.deployment.progress || 0,
+            tasks: phaseData.deployment.tasks || 0,
+          },
+          {
+            id: "maintenance",
+            name: "Maintenance",
+            description: "Ongoing support",
+            status: getPhaseStatus(phaseData.maintenance.progress, phaseData.maintenance.projects),
+            progress: phaseData.maintenance.progress || 0,
+            tasks: phaseData.maintenance.tasks || 0,
+          },
+        ]);
+      }
+    } catch (error) {
+      console.error('Error loading phases:', error);
     }
   };
 
