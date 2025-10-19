@@ -154,11 +154,45 @@ const Index = () => {
     },
   ];
 
-  const handleGenerateTasks = () => {
-    toast({
-      title: "AI Task Generation",
-      description: "Connect Lovable Cloud to enable AI-powered task automation!",
-    });
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleGenerateTasks = async () => {
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-tasks', {
+        body: { 
+          phase: selectedPhase,
+          existingTasks: tasks.map(t => ({ title: t.title, phase: t.phase }))
+        }
+      });
+
+      if (error) throw error;
+
+      const newTasks = data.tasks.map((task: any, index: number) => ({
+        id: `${Date.now()}-${index}`,
+        title: task.title,
+        description: task.description,
+        priority: task.priority,
+        status: "todo" as const,
+        phase: task.phase,
+      }));
+
+      setTasks(prev => [...prev, ...newTasks]);
+      
+      toast({
+        title: "Tasks Generated! ✨",
+        description: `Added ${newTasks.length} new tasks to your project`,
+      });
+    } catch (error) {
+      console.error('Error generating tasks:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to generate tasks. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handlePhaseClick = (phase: any) => {
@@ -209,9 +243,13 @@ const Index = () => {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button onClick={handleGenerateTasks} className="gap-2">
+              <Button 
+                onClick={handleGenerateTasks} 
+                className="gap-2"
+                disabled={isGenerating}
+              >
                 <Sparkles className="w-4 h-4" />
-                Generate Tasks with AI
+                {isGenerating ? "Generating..." : "Generate Tasks with AI"}
               </Button>
               <Button variant="outline" className="gap-2">
                 <BarChart3 className="w-4 h-4" />
