@@ -402,7 +402,7 @@ const Index = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 animate-fade-in">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center glow smooth-transition hover:scale-110">
-                <Settings className="w-6 h-6 text-white" />
+                <Settings className="w-6 h-6 text-white animate-spin" style={{ animationDuration: '3s' }} />
               </div>
               <div>
                 <h1 className="text-2xl font-bold gradient-text">
