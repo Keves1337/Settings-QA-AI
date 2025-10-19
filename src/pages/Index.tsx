@@ -7,6 +7,7 @@ import { TaskList, Task } from "@/components/TaskList";
 import { StatsCards } from "@/components/StatsCards";
 import { Sparkles, Zap, BarChart3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const { toast } = useToast();
