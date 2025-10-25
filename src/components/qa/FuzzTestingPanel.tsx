@@ -13,6 +13,8 @@ import {
   Activity
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { fuzzTestConfigSchema } from "@/lib/validation";
+import { z } from "zod";
 
 interface FuzzTest {
   testType: string;
@@ -63,6 +65,20 @@ export const FuzzTestingPanel = ({ uploadedFiles }: FuzzTestingPanelProps) => {
   };
 
   const runFuzzTests = async () => {
+    // Validate iterations
+    try {
+      fuzzTestConfigSchema.parse({ iterations });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast({
+          title: "Validation Error",
+          description: error.errors[0]?.message || "Invalid input",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     if (uploadedFiles.length === 0) {
       toast({
         title: "No Files",

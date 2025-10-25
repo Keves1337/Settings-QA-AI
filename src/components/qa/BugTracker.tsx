@@ -21,6 +21,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus, Github, FileText, ExternalLink, Camera, X } from "lucide-react";
+import { bugSchema } from "@/lib/validation";
+import { z } from "zod";
 
 export const BugTracker = () => {
   const { toast } = useToast();
@@ -88,13 +90,18 @@ export const BugTracker = () => {
   };
 
   const createBug = async () => {
-    if (!newBug.title || !newBug.description) {
-      toast({
-        title: "Error",
-        description: "Please fill in required fields",
-        variant: "destructive",
-      });
-      return;
+    // Validate input
+    try {
+      bugSchema.parse(newBug);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast({
+          title: "Validation Error",
+          description: error.errors[0]?.message || "Invalid input",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     const { data: bugData, error } = await supabase

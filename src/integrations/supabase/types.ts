@@ -18,7 +18,7 @@ export type Database = {
         Row: {
           assignee: string | null
           created_at: string
-          created_by: string | null
+          created_by: string
           description: string
           environment: string | null
           github_issue_number: number | null
@@ -37,7 +37,7 @@ export type Database = {
         Insert: {
           assignee?: string | null
           created_at?: string
-          created_by?: string | null
+          created_by?: string
           description: string
           environment?: string | null
           github_issue_number?: number | null
@@ -56,7 +56,7 @@ export type Database = {
         Update: {
           assignee?: string | null
           created_at?: string
-          created_by?: string | null
+          created_by?: string
           description?: string
           environment?: string | null
           github_issue_number?: number | null
@@ -93,7 +93,7 @@ export type Database = {
         Row: {
           config: Json
           created_at: string
-          created_by: string | null
+          created_by: string
           enabled: boolean | null
           id: string
           type: string
@@ -102,7 +102,7 @@ export type Database = {
         Insert: {
           config: Json
           created_at?: string
-          created_by?: string | null
+          created_by?: string
           enabled?: boolean | null
           id?: string
           type: string
@@ -111,7 +111,7 @@ export type Database = {
         Update: {
           config?: Json
           created_at?: string
-          created_by?: string | null
+          created_by?: string
           enabled?: boolean | null
           id?: string
           type?: string
@@ -123,7 +123,7 @@ export type Database = {
         Row: {
           completed_at: string | null
           created_at: string
-          created_by: string | null
+          created_by: string
           description: string | null
           id: string
           methodology: string | null
@@ -136,7 +136,7 @@ export type Database = {
         Insert: {
           completed_at?: string | null
           created_at?: string
-          created_by?: string | null
+          created_by?: string
           description?: string | null
           id?: string
           methodology?: string | null
@@ -149,7 +149,7 @@ export type Database = {
         Update: {
           completed_at?: string | null
           created_at?: string
-          created_by?: string | null
+          created_by?: string
           description?: string | null
           id?: string
           methodology?: string | null
@@ -165,7 +165,7 @@ export type Database = {
         Row: {
           automated: boolean | null
           created_at: string
-          created_by: string | null
+          created_by: string
           description: string | null
           expected_result: string | null
           id: string
@@ -184,7 +184,7 @@ export type Database = {
         Insert: {
           automated?: boolean | null
           created_at?: string
-          created_by?: string | null
+          created_by?: string
           description?: string | null
           expected_result?: string | null
           id?: string
@@ -203,7 +203,7 @@ export type Database = {
         Update: {
           automated?: boolean | null
           created_at?: string
-          created_by?: string | null
+          created_by?: string
           description?: string | null
           expected_result?: string | null
           id?: string
@@ -233,7 +233,7 @@ export type Database = {
         Row: {
           duration_ms: number | null
           executed_at: string
-          executed_by: string | null
+          executed_by: string
           github_artifact_url: string | null
           id: string
           jira_attachment_id: string | null
@@ -249,7 +249,7 @@ export type Database = {
         Insert: {
           duration_ms?: number | null
           executed_at?: string
-          executed_by?: string | null
+          executed_by?: string
           github_artifact_url?: string | null
           id?: string
           jira_attachment_id?: string | null
@@ -265,7 +265,7 @@ export type Database = {
         Update: {
           duration_ms?: number | null
           executed_at?: string
-          executed_by?: string | null
+          executed_by?: string
           github_artifact_url?: string | null
           id?: string
           jira_attachment_id?: string | null
@@ -293,14 +293,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_phase_stats: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      get_project_stats: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
+      get_phase_stats: { Args: never; Returns: Json }
+      get_project_stats: { Args: never; Returns: Json }
     }
     Enums: {
       [_ in never]: never

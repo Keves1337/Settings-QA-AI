@@ -6,6 +6,8 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Github, FileText, Save } from "lucide-react";
+import { jiraConfigSchema, githubConfigSchema } from "@/lib/validation";
+import { z } from "zod";
 
 export const IntegrationSettings = () => {
   const { toast } = useToast();
@@ -69,6 +71,20 @@ export const IntegrationSettings = () => {
   };
 
   const saveJiraIntegration = async () => {
+    // Validate input
+    try {
+      jiraConfigSchema.parse(jiraConfig);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast({
+          title: "Validation Error",
+          description: error.errors[0]?.message || "Invalid input",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     const { data: existing } = await supabase
       .from("integrations")
       .select("*")
@@ -119,6 +135,20 @@ export const IntegrationSettings = () => {
   };
 
   const saveGitHubIntegration = async () => {
+    // Validate input
+    try {
+      githubConfigSchema.parse(githubConfig);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast({
+          title: "Validation Error",
+          description: error.errors[0]?.message || "Invalid input",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     const { data: existing } = await supabase
       .from("integrations")
       .select("*")
