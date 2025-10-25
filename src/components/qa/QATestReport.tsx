@@ -31,7 +31,55 @@ interface QATestReportProps {
 }
 
 export const QATestReport = ({ report }: QATestReportProps) => {
-  const { summary, criticalIssues, highPriorityIssues, warnings, passedChecks } = report;
+  const defaultReport = {
+    summary: {
+      totalFiles: 0,
+      criticalIssues: 0,
+      highPriorityIssues: 0,
+      warnings: 0,
+      passedChecks: 0,
+      overallStatus: 'pass' as const,
+    },
+    criticalIssues: [] as QAReportItem[],
+    highPriorityIssues: [] as QAReportItem[],
+    warnings: [] as QAReportItem[],
+    passedChecks: [] as QAReportItem[],
+  };
+
+  const mapIssue = (i: any): QAReportItem => ({
+    type: i?.type || 'issue',
+    description: i?.description || 'Issue',
+    location: i?.location || '',
+    recommendation: i?.recommendation,
+    impact: i?.impact,
+  });
+
+  const normalized = (() => {
+    const r: any = report || {};
+    if (r.summary) return r;
+    if (Array.isArray(r.issues)) {
+      const crit = r.issues.filter((i: any) => i?.severity === 'critical').map(mapIssue);
+      const high = r.issues.filter((i: any) => i?.severity === 'high').map(mapIssue);
+      const warn = r.issues.filter((i: any) => i?.severity === 'medium' || i?.severity === 'low').map(mapIssue);
+      return {
+        summary: {
+          totalFiles: typeof r.totalFiles === 'number' ? r.totalFiles : 0,
+          criticalIssues: crit.length,
+          highPriorityIssues: high.length,
+          warnings: warn.length,
+          passedChecks: 0,
+          overallStatus: crit.length > 0 ? 'fail' : (high.length > 0 ? 'warning' : 'pass'),
+        },
+        criticalIssues: crit,
+        highPriorityIssues: high,
+        warnings: warn,
+        passedChecks: [],
+      };
+    }
+    return defaultReport;
+  })();
+
+  const { summary, criticalIssues, highPriorityIssues, warnings, passedChecks } = normalized;
 
   const getStatusColor = (status: string) => {
     switch (status) {
