@@ -173,20 +173,69 @@ For each issue, provide:
 
     const data = await response.json();
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-    const report = toolCall ? JSON.parse(toolCall.function.arguments) : {
-      summary: {
-        totalFiles: filesToAnalyze.length,
-        criticalIssues: 0,
-        highPriorityIssues: 0,
-        warnings: 0,
-        passedChecks: 0,
-        overallStatus: 'pass'
-      },
-      criticalIssues: [],
-      highPriorityIssues: [],
-      warnings: [],
-      passedChecks: []
-    };
+    
+    let report;
+    if (toolCall) {
+      const parsed = JSON.parse(toolCall.function.arguments);
+      
+      // Check if response is in new format or old format
+      if (parsed.summary) {
+        // New format - use as is
+        report = parsed;
+      } else {
+        // Old format - transform to new format
+        const criticalIssues = parsed.issues?.filter((i: any) => i.severity === 'critical') || [];
+        const highPriorityIssues = parsed.issues?.filter((i: any) => i.severity === 'high') || [];
+        const warnings = parsed.issues?.filter((i: any) => i.severity === 'medium' || i.severity === 'low') || [];
+        
+        report = {
+          summary: {
+            totalFiles: filesToAnalyze.length,
+            criticalIssues: criticalIssues.length,
+            highPriorityIssues: highPriorityIssues.length,
+            warnings: warnings.length,
+            passedChecks: 0,
+            overallStatus: criticalIssues.length > 0 ? 'fail' : (highPriorityIssues.length > 0 ? 'warning' : 'pass')
+          },
+          criticalIssues: criticalIssues.map((i: any) => ({
+            type: i.type,
+            description: i.description,
+            location: i.location,
+            recommendation: i.recommendation,
+            impact: i.impact
+          })),
+          highPriorityIssues: highPriorityIssues.map((i: any) => ({
+            type: i.type,
+            description: i.description,
+            location: i.location,
+            recommendation: i.recommendation
+          })),
+          warnings: warnings.map((i: any) => ({
+            type: i.type,
+            description: i.description,
+            location: i.location,
+            recommendation: i.recommendation
+          })),
+          passedChecks: []
+        };
+      }
+    } else {
+      // No tool call - return empty report
+      report = {
+        summary: {
+          totalFiles: filesToAnalyze.length,
+          criticalIssues: 0,
+          highPriorityIssues: 0,
+          warnings: 0,
+          passedChecks: 0,
+          overallStatus: 'pass'
+        },
+        criticalIssues: [],
+        highPriorityIssues: [],
+        warnings: [],
+        passedChecks: []
+      };
+    }
 
     console.log('QA Report generated:', report);
 
