@@ -3,17 +3,17 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileUploadZone } from "@/components/qa/FileUploadZone";
-import { AutomatedTestList } from "@/components/qa/AutomatedTestList";
+import { QATestReport } from "@/components/qa/QATestReport";
 import { TestExecutionDashboard } from "@/components/qa/TestExecutionDashboard";
 import { TestReportsLibrary } from "@/components/qa/TestReportsLibrary";
 import { FuzzTestingPanel } from "@/components/qa/FuzzTestingPanel";
-import { Sparkles, PlayCircle, LogOut, Settings, Zap } from "lucide-react";
+import { Sparkles, LogOut, Settings, Zap, FileCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 const AutomatedQA = () => {
   const { toast } = useToast();
-  const [generatedTests, setGeneratedTests] = useState<any[]>([]);
+  const [qaReport, setQaReport] = useState<any>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
 
@@ -28,6 +28,7 @@ const AutomatedQA = () => {
   const handleFilesUploaded = async (files: File[]) => {
     setUploadedFiles(files);
     setIsGenerating(true);
+    setQaReport(null);
 
     try {
       // Read file contents
@@ -48,52 +49,29 @@ const AutomatedQA = () => {
 
       if (error) throw error;
 
-      setGeneratedTests(data.testCases || []);
+      setQaReport(data);
+      
+      const status = data.summary?.overallStatus || 'unknown';
+      const statusMessages = {
+        pass: '✅ All tests passed!',
+        warning: '⚠️ Tests completed with warnings',
+        fail: '❌ Critical issues found'
+      };
       
       toast({
-        title: "Tests Generated! ✨",
-        description: `Created ${data.testCases?.length || 0} automated test cases from your project`,
+        title: "QA Analysis Complete",
+        description: statusMessages[status] || "Analysis completed",
+        variant: status === 'fail' ? 'destructive' : 'default'
       });
     } catch (error) {
-      console.error('Error generating tests:', error);
+      console.error('Error analyzing files:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to analyze project. Please try again.",
+        description: error.message || "Failed to analyze files. Please try again.",
         variant: "destructive",
       });
     } finally {
       setIsGenerating(false);
-    }
-  };
-
-  const handleSaveTests = async () => {
-    try {
-      const { error } = await supabase.from('test_cases').insert(
-        generatedTests.map(test => ({
-          title: test.title,
-          description: test.description,
-          steps: test.steps,
-          expected_result: test.expectedResult,
-          priority: test.priority,
-          phase: test.phase,
-          automated: true,
-          status: 'approved',
-        }))
-      );
-
-      if (error) throw error;
-
-      toast({
-        title: "Tests Saved!",
-        description: "All automated tests have been saved to your test suite",
-      });
-    } catch (error) {
-      console.error('Error saving tests:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save tests. Please try again.",
-        variant: "destructive",
-      });
     }
   };
 
@@ -140,13 +118,12 @@ const AutomatedQA = () => {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="upload" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="upload">Upload & Generate</TabsTrigger>
-            <TabsTrigger value="fuzz" className="gap-2">
-              <Zap className="w-4 h-4" />
-              Fuzz Testing
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="upload">Upload & Test</TabsTrigger>
+            <TabsTrigger value="report" className="gap-2">
+              <FileCheck className="w-4 h-4" />
+              Test Report
             </TabsTrigger>
-            <TabsTrigger value="tests">Generated Tests</TabsTrigger>
             <TabsTrigger value="execution">Test Execution</TabsTrigger>
             <TabsTrigger value="reports">STR Reports</TabsTrigger>
           </TabsList>
@@ -155,9 +132,9 @@ const AutomatedQA = () => {
             <Card className="p-6">
               <div className="space-y-4">
                 <div>
-                  <h2 className="text-xl font-semibold mb-2">Upload Your Project</h2>
+                  <h2 className="text-xl font-semibold mb-2">Upload Files for QA Testing</h2>
                   <p className="text-muted-foreground">
-                    Drag and drop your project files to automatically generate comprehensive test cases
+                    Drag and drop any file (HTML, JavaScript, CSS, etc.) to automatically run QA tests and generate a detailed report
                   </p>
                 </div>
                 <FileUploadZone 
@@ -180,28 +157,18 @@ const AutomatedQA = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="fuzz" className="space-y-6">
-            <FuzzTestingPanel uploadedFiles={uploadedFiles} />
-          </TabsContent>
-
-          <TabsContent value="tests" className="space-y-6">
-            <Card className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-xl font-semibold">Generated Test Cases</h2>
-                  <p className="text-muted-foreground">
-                    {generatedTests.length} automated tests ready to save
-                  </p>
-                </div>
-                {generatedTests.length > 0 && (
-                  <Button onClick={handleSaveTests} className="gap-2">
-                    <PlayCircle className="w-4 h-4" />
-                    Save All Tests
-                  </Button>
-                )}
-              </div>
-              <AutomatedTestList tests={generatedTests} />
-            </Card>
+          <TabsContent value="report" className="space-y-6">
+            {qaReport ? (
+              <QATestReport report={qaReport} />
+            ) : (
+              <Card className="p-12 text-center">
+                <FileCheck className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-xl font-semibold mb-2">No Report Yet</h3>
+                <p className="text-muted-foreground mb-4">
+                  Upload files in the "Upload & Test" tab to generate a QA test report
+                </p>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="execution" className="space-y-6">

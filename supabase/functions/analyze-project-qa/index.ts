@@ -29,23 +29,39 @@ serve(async (req) => {
       `File: ${file.name || file.path}\n${file.content}`
     ).join('\n\n');
 
-    const systemPrompt = `You are an expert QA engineer analyzing code for bugs, security issues, and quality problems.
-Analyze the provided code comprehensively and identify:
-1. Security vulnerabilities (SQL injection, XSS, authentication issues)
-2. Logic errors and potential runtime bugs
-3. Performance issues
-4. Code quality and maintainability concerns
-5. Missing error handling
-6. Accessibility issues
-7. Edge cases not handled
+    const systemPrompt = `You are an expert QA testing engineer analyzing files for quality, bugs, security issues, and best practices.
 
-For each issue found, provide:
-- Type (security/logic/performance/quality/accessibility)
-- Severity (critical/high/medium/low)
-- Description (clear explanation)
-- Location (file:line)
-- Recommendation (how to fix)
-- Impact (what could go wrong)`;
+Analyze the provided files comprehensively and create a detailed QA test report. For each file, identify:
+
+CRITICAL ISSUES (Must Fix):
+- Security vulnerabilities (SQL injection, XSS, authentication bypass, exposed secrets)
+- Logic errors that cause crashes or data corruption
+- Broken functionality or missing required elements
+
+HIGH PRIORITY ISSUES (Should Fix):
+- Performance bottlenecks
+- Poor error handling
+- Accessibility violations
+- Missing validation
+
+WARNINGS (Good to Fix):
+- Code quality concerns
+- Maintainability issues
+- Best practice violations
+
+PASSED CHECKS (What's Working):
+- Properly implemented features
+- Good security practices
+- Well-structured code
+- Proper error handling
+
+For each issue, provide:
+- Category (critical/high/warning/pass)
+- Type (security/logic/performance/quality/accessibility/functionality)
+- Description (clear, specific explanation)
+- Location (file and line if applicable)
+- Recommendation (actionable fix)
+- Impact (what happens if not fixed)`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -62,35 +78,76 @@ For each issue found, provide:
         tools: [{
           type: 'function',
           function: {
-            name: 'report_analysis',
-            description: 'Report comprehensive code analysis results',
+            name: 'generate_qa_report',
+            description: 'Generate a comprehensive QA testing report',
             parameters: {
               type: 'object',
               properties: {
-                issues: {
+                summary: {
+                  type: 'object',
+                  properties: {
+                    totalFiles: { type: 'number' },
+                    criticalIssues: { type: 'number' },
+                    highPriorityIssues: { type: 'number' },
+                    warnings: { type: 'number' },
+                    passedChecks: { type: 'number' },
+                    overallStatus: { type: 'string', enum: ['pass', 'warning', 'fail'] }
+                  }
+                },
+                criticalIssues: {
                   type: 'array',
                   items: {
                     type: 'object',
                     properties: {
-                      type: { type: 'string', enum: ['security', 'logic', 'performance', 'quality', 'accessibility'] },
-                      severity: { type: 'string', enum: ['critical', 'high', 'medium', 'low'] },
+                      type: { type: 'string' },
                       description: { type: 'string' },
                       location: { type: 'string' },
                       recommendation: { type: 'string' },
                       impact: { type: 'string' }
-                    },
-                    required: ['type', 'severity', 'description', 'location', 'recommendation', 'impact']
+                    }
                   }
                 },
-                suggestions: { type: 'array', items: { type: 'string' } },
-                testCoverage: { type: 'number' },
-                complexity: { type: 'string', enum: ['low', 'medium', 'high', 'very-high'] }
+                highPriorityIssues: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      type: { type: 'string' },
+                      description: { type: 'string' },
+                      location: { type: 'string' },
+                      recommendation: { type: 'string' }
+                    }
+                  }
+                },
+                warnings: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      type: { type: 'string' },
+                      description: { type: 'string' },
+                      location: { type: 'string' },
+                      recommendation: { type: 'string' }
+                    }
+                  }
+                },
+                passedChecks: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      type: { type: 'string' },
+                      description: { type: 'string' },
+                      location: { type: 'string' }
+                    }
+                  }
+                }
               },
-              required: ['issues', 'suggestions', 'complexity']
+              required: ['summary', 'criticalIssues', 'highPriorityIssues', 'warnings', 'passedChecks']
             }
           }
         }],
-        tool_choice: { type: 'function', function: { name: 'report_analysis' } }
+        tool_choice: { type: 'function', function: { name: 'generate_qa_report' } }
       })
     });
 
@@ -116,16 +173,25 @@ For each issue found, provide:
 
     const data = await response.json();
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-    const analysis = toolCall ? JSON.parse(toolCall.function.arguments) : {
-      issues: [],
-      suggestions: ['Enable AI analysis for detailed insights'],
-      complexity: 'unknown'
+    const report = toolCall ? JSON.parse(toolCall.function.arguments) : {
+      summary: {
+        totalFiles: filesToAnalyze.length,
+        criticalIssues: 0,
+        highPriorityIssues: 0,
+        warnings: 0,
+        passedChecks: 0,
+        overallStatus: 'pass'
+      },
+      criticalIssues: [],
+      highPriorityIssues: [],
+      warnings: [],
+      passedChecks: []
     };
 
-    console.log('Analysis completed:', analysis);
+    console.log('QA Report generated:', report);
 
     return new Response(
-      JSON.stringify(analysis),
+      JSON.stringify(report),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
