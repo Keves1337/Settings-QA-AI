@@ -12,16 +12,21 @@ serve(async (req) => {
   }
 
   try {
-    const { projectFiles, deepAnalysis = true } = await req.json();
+    const { files, projectFiles, deepAnalysis = true } = await req.json();
+    const filesToAnalyze = files || projectFiles;
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
+    if (!filesToAnalyze || !Array.isArray(filesToAnalyze)) {
+      throw new Error('No files provided for analysis');
+    }
+
     // Prepare project context for AI analysis
-    const fileContext = projectFiles.map((file: any) => 
-      `File: ${file.path}\n${file.content}`
+    const fileContext = filesToAnalyze.map((file: any) => 
+      `File: ${file.name || file.path}\n${file.content}`
     ).join('\n\n');
 
     const systemPrompt = `You are an expert QA engineer analyzing code for bugs, security issues, and quality problems.

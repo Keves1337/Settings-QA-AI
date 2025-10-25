@@ -5,7 +5,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { AuthForm } from "@/components/auth/AuthForm";
 import Index from "./pages/Index";
 import QATesting from "./pages/QATesting";
 import AutomatedQA from "./pages/AutomatedQA";
@@ -14,19 +13,27 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const App = () => {
-  const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
+    const initAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        await supabase.auth.signInAnonymously();
+      }
+      
       setLoading(false);
-    });
+    };
+
+    initAuth();
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
+      if (!session) {
+        supabase.auth.signInAnonymously();
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -34,18 +41,6 @@ const App = () => {
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
-  }
-
-  if (!session) {
-    return (
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <AuthForm />
-        </TooltipProvider>
-      </QueryClientProvider>
-    );
   }
 
   return (
