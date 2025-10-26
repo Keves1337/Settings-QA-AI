@@ -1,7 +1,11 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { AlertCircle, AlertTriangle, CheckCircle, Info } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { AlertCircle, AlertTriangle, CheckCircle, Info, Languages } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
+import { toast } from "sonner";
 
 interface QAReportItem {
   type: string;
@@ -29,6 +33,91 @@ interface QATestReportProps {
     passedChecks: QAReportItem[];
   };
 }
+
+const IssueCard = ({ issue, idx, color }: { issue: QAReportItem; idx: number; color: 'red' | 'orange' | 'yellow' }) => {
+  const [translatedText, setTranslatedText] = useState<string | null>(null);
+  const [isTranslating, setIsTranslating] = useState(false);
+
+  const translateToHebrew = async () => {
+    setIsTranslating(true);
+    try {
+      const textToTranslate = `${issue.description}${issue.impact ? `\n\nImpact: ${issue.impact}` : ''}${issue.recommendation ? `\n\nFix: ${issue.recommendation}` : ''}`;
+      
+      const { data, error } = await supabase.functions.invoke('translate-to-hebrew', {
+        body: { text: textToTranslate }
+      });
+
+      if (error) throw error;
+      
+      if (data?.translatedText) {
+        setTranslatedText(data.translatedText);
+        toast.success('Translated to Hebrew');
+      }
+    } catch (error) {
+      console.error('Translation error:', error);
+      toast.error('Failed to translate');
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
+  const borderColor = color === 'red' ? 'border-red-200 dark:border-red-800' : 
+                      color === 'orange' ? 'border-orange-200 dark:border-orange-800' : 
+                      'border-yellow-200 dark:border-yellow-800';
+  
+  const badgeColor = color === 'red' ? 'destructive' : 
+                     color === 'orange' ? 'bg-orange-600' : 
+                     'bg-yellow-600';
+
+  return (
+    <div className={`p-4 bg-background rounded-lg border ${borderColor}`}>
+      <div className="flex items-start justify-between mb-2">
+        <Badge variant={badgeColor as any} className={typeof badgeColor === 'string' ? badgeColor : ''}>
+          {issue.type}
+        </Badge>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">{issue.location}</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={translateToHebrew}
+            disabled={isTranslating}
+            className="h-7 px-2"
+          >
+            <Languages className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+      {translatedText ? (
+        <div className="space-y-2 text-right" dir="rtl">
+          <p className="font-medium whitespace-pre-line">{translatedText}</p>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setTranslatedText(null)}
+            className="text-xs"
+          >
+            Show English
+          </Button>
+        </div>
+      ) : (
+        <>
+          <p className="font-medium mb-2">{issue.description}</p>
+          {issue.impact && (
+            <p className="text-sm text-muted-foreground mb-2">
+              <strong>Impact:</strong> {issue.impact}
+            </p>
+          )}
+          {issue.recommendation && (
+            <p className="text-sm text-muted-foreground">
+              <strong>Fix:</strong> {issue.recommendation}
+            </p>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
 
 export const QATestReport = ({ report }: QATestReportProps) => {
   const defaultReport = {
@@ -163,23 +252,7 @@ export const QATestReport = ({ report }: QATestReportProps) => {
               </AccordionTrigger>
               <AccordionContent className="space-y-3 pt-4">
                 {criticalIssues.map((issue, idx) => (
-                  <div key={idx} className="p-4 bg-background rounded-lg border border-red-200 dark:border-red-800">
-                    <div className="flex items-start justify-between mb-2">
-                      <Badge variant="destructive">{issue.type}</Badge>
-                      <span className="text-sm text-muted-foreground">{issue.location}</span>
-                    </div>
-                    <p className="font-medium mb-2">{issue.description}</p>
-                    {issue.impact && (
-                      <p className="text-sm text-muted-foreground mb-2">
-                        <strong>Impact:</strong> {issue.impact}
-                      </p>
-                    )}
-                    {issue.recommendation && (
-                      <p className="text-sm text-muted-foreground">
-                        <strong>Fix:</strong> {issue.recommendation}
-                      </p>
-                    )}
-                  </div>
+                  <IssueCard key={idx} issue={issue} idx={idx} color="red" />
                 ))}
               </AccordionContent>
             </AccordionItem>
@@ -198,18 +271,7 @@ export const QATestReport = ({ report }: QATestReportProps) => {
               </AccordionTrigger>
               <AccordionContent className="space-y-3 pt-4">
                 {highPriorityIssues.map((issue, idx) => (
-                  <div key={idx} className="p-4 bg-background rounded-lg border border-orange-200 dark:border-orange-800">
-                    <div className="flex items-start justify-between mb-2">
-                      <Badge className="bg-orange-600">{issue.type}</Badge>
-                      <span className="text-sm text-muted-foreground">{issue.location}</span>
-                    </div>
-                    <p className="font-medium mb-2">{issue.description}</p>
-                    {issue.recommendation && (
-                      <p className="text-sm text-muted-foreground">
-                        <strong>Fix:</strong> {issue.recommendation}
-                      </p>
-                    )}
-                  </div>
+                  <IssueCard key={idx} issue={issue} idx={idx} color="orange" />
                 ))}
               </AccordionContent>
             </AccordionItem>
@@ -228,18 +290,7 @@ export const QATestReport = ({ report }: QATestReportProps) => {
               </AccordionTrigger>
               <AccordionContent className="space-y-3 pt-4">
                 {warnings.map((issue, idx) => (
-                  <div key={idx} className="p-4 bg-background rounded-lg border border-yellow-200 dark:border-yellow-800">
-                    <div className="flex items-start justify-between mb-2">
-                      <Badge className="bg-yellow-600">{issue.type}</Badge>
-                      <span className="text-sm text-muted-foreground">{issue.location}</span>
-                    </div>
-                    <p className="font-medium mb-2">{issue.description}</p>
-                    {issue.recommendation && (
-                      <p className="text-sm text-muted-foreground">
-                        <strong>Recommendation:</strong> {issue.recommendation}
-                      </p>
-                    )}
-                  </div>
+                  <IssueCard key={idx} issue={issue} idx={idx} color="yellow" />
                 ))}
               </AccordionContent>
             </AccordionItem>
