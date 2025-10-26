@@ -33,8 +33,9 @@ export const TestReportsLibrary = () => {
   };
 
   const filteredReports = reports.filter(report =>
-    report.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    report.test_case_id.toLowerCase().includes(searchTerm.toLowerCase())
+    report.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (report.test_case_id && report.test_case_id.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    report.status?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const downloadReport = async (reportUrl: string, testRunId: string) => {

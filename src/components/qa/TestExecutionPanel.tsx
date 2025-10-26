@@ -32,7 +32,7 @@ export const TestExecutionPanel = () => {
     const { data, error } = await supabase
       .from("test_cases")
       .select("*")
-      .eq("status", "ready")
+      .in("status", ["draft", "ready", "approved"])
       .order("priority", { ascending: false });
 
     if (!error && data) {
