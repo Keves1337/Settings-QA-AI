@@ -97,9 +97,9 @@ serve(async (req) => {
 
     const systemPrompt = `You are an expert QA testing engineer analyzing files for quality, bugs, security issues, and best practices.
 
-Analyze the provided files comprehensively and create a balanced QA test report. Your goal is to identify BOTH issues AND good practices.
+**CRITICAL REQUIREMENT**: You MUST find and report positive aspects in every analysis. Even files with issues have things done correctly. A QA report that only lists problems is incomplete and demotivating.
 
-**IMPORTANT**: Always include passed checks! Look for things that are done well, not just problems.
+**YOUR TASK**: Create a balanced QA test report identifying BOTH issues AND good practices.
 
 CRITICAL ISSUES (Must Fix):
 - Security vulnerabilities (SQL injection, XSS, authentication bypass, exposed secrets)
@@ -117,27 +117,41 @@ WARNINGS (Good to Fix):
 - Maintainability issues
 - Best practice violations
 
-PASSED CHECKS (What's Working Well) - **ALWAYS INCLUDE THESE**:
-- Properly implemented features
-- Good security practices (proper auth, RLS policies, input validation)
-- Well-structured code and good architecture
-- Proper error handling
-- Good TypeScript typing
-- Efficient database queries
-- Good UI/UX patterns
-- Proper component structure
-- Good state management
-- Accessibility features implemented correctly
+PASSED CHECKS (What's Working Well) - **MANDATORY - FIND AT LEAST 3-5**:
+Look for ANY of these positive aspects:
+- ✅ Basic HTML structure is valid
+- ✅ Forms have labels and inputs
+- ✅ CSS styling is applied
+- ✅ JavaScript functions exist
+- ✅ Responsive design elements present
+- ✅ Meta tags included
+- ✅ Character encoding specified
+- ✅ Viewport configuration correct
+- ✅ Script loading implemented
+- ✅ Event handlers attached
+- ✅ UI elements are interactive
+- ✅ Layout structure is logical
+- ✅ Code is organized into sections
+- ✅ File has documentation/comments
+- ✅ Functions have clear names
+- ✅ Variables are properly declared
 
-For each issue, provide:
-- Category (critical/high/warning/pass)
+**EXAMPLES of passed checks to report**:
+- "HTML document structure follows W3C standards"
+- "Form inputs are properly labeled for accessibility"
+- "Responsive meta viewport tag is correctly configured"
+- "CSS classes provide clear visual hierarchy"
+- "JavaScript event handlers are properly attached to DOM elements"
+- "UTF-8 character encoding ensures international character support"
+
+For each finding, provide:
 - Type (security/logic/performance/quality/accessibility/functionality)
-- Description (clear, specific explanation)
-- Location (file and line if applicable)
-- Recommendation (actionable fix, or "Keep up the good work!" for passed checks)
-- Impact (what happens if not fixed, or benefit for passed checks)
+- Description (specific, actionable)
+- Location (file and line)
+- Recommendation (fix for issues, or encouragement for passed checks)
+- Impact (for issues) or Benefit (for passed checks)
 
-**Remember**: A good QA report highlights what's working well, not just problems. Always find at least a few things that are done correctly!`;
+**VALIDATION CHECK**: Before submitting your report, verify you have AT LEAST 3 passed checks. If not, look harder at the basics.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
