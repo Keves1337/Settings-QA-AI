@@ -12,19 +12,98 @@ serve(async (req) => {
   }
 
   try {
+    // Authentication check
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
     );
 
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     const { codeFiles, testConfig } = await req.json();
+    
+    // Input validation
+    if (!codeFiles || !Array.isArray(codeFiles)) {
+      return new Response(JSON.stringify({ error: 'Invalid codeFiles array' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    if (codeFiles.length === 0) {
+      return new Response(JSON.stringify({ error: 'At least one code file required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    if (codeFiles.length > 20) {
+      return new Response(JSON.stringify({ error: 'Maximum 20 code files allowed' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Validate each code file
+    for (const file of codeFiles) {
+      if (!file.name || typeof file.name !== 'string') {
+        return new Response(JSON.stringify({ error: 'Invalid file name' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      
+      if (!file.content || typeof file.content !== 'string') {
+        return new Response(JSON.stringify({ error: 'Invalid file content' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      if (file.content.length > 500000) {
+        return new Response(JSON.stringify({ error: 'File too large. Maximum 500KB per file' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
+    if (!testConfig || typeof testConfig !== 'object') {
+      return new Response(JSON.stringify({ error: 'Invalid testConfig' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    const iterations = testConfig.iterations || 100;
+    if (typeof iterations !== 'number' || iterations < 1 || iterations > 500) {
+      return new Response(JSON.stringify({ error: 'Iterations must be between 1 and 500' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    const iterations = testConfig?.iterations || 100;
     const fileContext = codeFiles.map((file: any) => 
       `File: ${file.path}\n${file.content}`
     ).join('\n\n');

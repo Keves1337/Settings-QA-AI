@@ -19,17 +19,39 @@ serve(async (req) => {
 
     const { bugId, screenshotBase64, fileName } = await req.json();
 
-    if (!screenshotBase64 || !bugId) {
-      throw new Error('Missing required fields: bugId and screenshotBase64');
+    // Input validation
+    if (!bugId || typeof bugId !== 'string') {
+      return new Response(JSON.stringify({ error: 'Invalid bugId' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    if (!screenshotBase64 || typeof screenshotBase64 !== 'string') {
+      return new Response(JSON.stringify({ error: 'Invalid screenshot data' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Check base64 size (approximately 10MB limit)
+    if (screenshotBase64.length > 13500000) {
+      return new Response(JSON.stringify({ error: 'Screenshot too large. Maximum 10MB' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
     // Convert base64 to binary
     const base64Data = screenshotBase64.replace(/^data:image\/\w+;base64,/, '');
     const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
 
-    // Upload to storage
+    // Sanitize fileName to prevent path traversal
     const timestamp = Date.now();
-    const filePath = `bugs/${bugId}/${fileName || `screenshot-${timestamp}.png`}`;
+    const sanitizedFileName = fileName 
+      ? fileName.replace(/[^a-zA-Z0-9._-]/g, '_')
+      : `screenshot-${timestamp}.png`;
+    const filePath = `bugs/${bugId}/${sanitizedFileName}`;
     
     const { error: uploadError } = await supabaseClient.storage
       .from('test-reports')

@@ -12,16 +12,82 @@ serve(async (req) => {
   }
 
   try {
+    // Authentication check
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     const { files, projectFiles, deepAnalysis = true } = await req.json();
     const filesToAnalyze = files || projectFiles;
+    
+    // Input validation
+    if (!filesToAnalyze || !Array.isArray(filesToAnalyze)) {
+      return new Response(JSON.stringify({ error: 'Invalid files array' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    if (filesToAnalyze.length === 0) {
+      return new Response(JSON.stringify({ error: 'At least one file required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    if (filesToAnalyze.length > 50) {
+      return new Response(JSON.stringify({ error: 'Maximum 50 files allowed' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Validate each file
+    for (const file of filesToAnalyze) {
+      if (!file.name && !file.path) {
+        return new Response(JSON.stringify({ error: 'Invalid file: missing name or path' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      
+      if (!file.content || typeof file.content !== 'string') {
+        return new Response(JSON.stringify({ error: 'Invalid file content' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      
+      if (file.content.length > 1000000) {
+        return new Response(JSON.stringify({ error: 'File too large. Maximum 1MB per file' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
-    }
-
-    if (!filesToAnalyze || !Array.isArray(filesToAnalyze)) {
-      throw new Error('No files provided for analysis');
     }
 
     // Prepare project context for AI analysis
