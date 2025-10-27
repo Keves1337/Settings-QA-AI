@@ -51,17 +51,29 @@ const AutomatedQA = () => {
     setQaReport(null);
 
     try {
-      // Read file contents
-      const fileContents = await Promise.all(
-        files.map(async (file) => {
-          const text = await file.text();
-          return {
-            name: file.name,
-            content: text,
-            type: file.type,
-          };
-        })
-      );
+      // Read file contents with safe truncation to avoid oversized requests
+      const MAX_PER_FILE = 200_000; // 200KB per file
+      const MAX_TOTAL = 800_000;    // 800KB overall
+      let totalChars = 0;
+      const truncationNotes: string[] = [];
+
+      const fileContents: Array<{ name: string; content: string; type: string }> = [];
+      for (const file of files) {
+        let text = await file.text();
+        if (text.length > MAX_PER_FILE) {
+          truncationNotes.push(`- ${file.name}: truncated to ${MAX_PER_FILE} chars`);
+          text = text.slice(0, MAX_PER_FILE);
+        }
+        if (totalChars + text.length > MAX_TOTAL) {
+          const remaining = Math.max(0, MAX_TOTAL - totalChars);
+          if (remaining <= 0) break;
+          truncationNotes.push(`- ${file.name}: further truncated due to total cap`);
+          text = text.slice(0, remaining);
+        }
+        totalChars += text.length;
+        fileContents.push({ name: file.name, content: text, type: file.type });
+        if (totalChars >= MAX_TOTAL) break;
+      }
 
       const { data, error } = await supabase.functions.invoke('analyze-project-qa', {
         body: { files: fileContents }
