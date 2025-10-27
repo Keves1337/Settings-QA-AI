@@ -26,6 +26,26 @@ const AutomatedQA = () => {
   };
 
   const handleFilesUploaded = async (files: File[]) => {
+    // Client-side validation mirrors backend to avoid non-2xx errors
+    if (files.length > 50) {
+      toast({
+        title: "Too many files",
+        description: "Maximum 50 files allowed.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const oversized = files.filter((f) => f.size > 1_000_000);
+    if (oversized.length > 0) {
+      toast({
+        title: "File too large",
+        description: `The following files exceed 1MB: ${oversized.map(f => f.name).join(', ')}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setUploadedFiles(files);
     setIsGenerating(true);
     setQaReport(null);
