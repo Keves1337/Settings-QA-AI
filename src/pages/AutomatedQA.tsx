@@ -47,7 +47,14 @@ const AutomatedQA = () => {
         body: { files: fileContents }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error(error.message || 'Failed to analyze files');
+      }
+
+      if (!data) {
+        throw new Error('No data returned from analysis');
+      }
 
       setQaReport(data);
       
@@ -63,11 +70,12 @@ const AutomatedQA = () => {
         description: statusMessages[status] || "Analysis completed",
         variant: status === 'fail' ? 'destructive' : 'default'
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error analyzing files:', error);
+      const errorMessage = error?.message || error?.error || "Failed to analyze files. Please try again.";
       toast({
         title: "Error",
-        description: error.message || "Failed to analyze files. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

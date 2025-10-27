@@ -258,10 +258,14 @@ For each finding, provide:
     if (!response.ok) {
       const errorText = await response.text();
       console.error('AI API error:', response.status, errorText);
-      throw new Error(`AI API error: ${response.status}`);
+      return new Response(
+        JSON.stringify({ error: `AI service error: ${response.status}. Please try again.` }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const data = await response.json();
+    console.log('AI API response:', JSON.stringify(data, null, 2));
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     
     let report;
