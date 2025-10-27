@@ -36,11 +36,11 @@ const AutomatedQA = () => {
       return;
     }
 
-    const oversized = files.filter((f) => f.size > 1_000_000);
+    const oversized = files.filter((f) => f.size > 20_000_000);
     if (oversized.length > 0) {
       toast({
         title: "File too large",
-        description: `The following files exceed 1MB: ${oversized.map(f => f.name).join(', ')}`,
+        description: `The following files exceed 20MB: ${oversized.map(f => f.name).join(', ')}`,
         variant: "destructive",
       });
       return;
