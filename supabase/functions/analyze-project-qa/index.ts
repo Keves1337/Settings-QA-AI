@@ -11,6 +11,7 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let filesCount = 0;
   try {
     // Authentication check
     const authHeader = req.headers.get('Authorization');
@@ -37,6 +38,7 @@ serve(async (req) => {
 
     const { files, projectFiles, deepAnalysis = true } = await req.json();
     const filesToAnalyze = files || projectFiles;
+    filesCount = filesToAnalyze.length;
     
     // Input validation
     if (!filesToAnalyze || !Array.isArray(filesToAnalyze)) {
@@ -90,10 +92,39 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    // Prepare project context for AI analysis
-    const fileContext = filesToAnalyze.map((file: any) => 
-      `File: ${file.name || file.path}\n${file.content}`
-    ).join('\n\n');
+    // Prepare project context for AI analysis with safe truncation to avoid oversized payloads
+    const MAX_CONTENT_PER_FILE = 200_000; // 200KB per file
+    const MAX_TOTAL_CONTENT = 800_000;     // 800KB overall cap
+
+    let totalChars = 0;
+    const truncationNotes: string[] = [];
+
+    const processedFiles = [] as Array<{ name: string; content: string; }>;
+    for (const file of filesToAnalyze) {
+      const name = file.name || file.path;
+      let content = file.content as string;
+      if (content.length > MAX_CONTENT_PER_FILE) {
+        truncationNotes.push(`- ${name}: truncated to ${MAX_CONTENT_PER_FILE} of ${content.length} characters`);
+        content = content.slice(0, MAX_CONTENT_PER_FILE);
+      }
+      if (totalChars + content.length > MAX_TOTAL_CONTENT) {
+        const remaining = Math.max(0, MAX_TOTAL_CONTENT - totalChars);
+        if (remaining <= 0) break;
+        truncationNotes.push(`- ${name}: further truncated due to total size cap`);
+        content = content.slice(0, remaining);
+      }
+      totalChars += content.length;
+      processedFiles.push({ name, content });
+      if (totalChars >= MAX_TOTAL_CONTENT) break;
+    }
+
+    const preface = truncationNotes.length
+      ? `NOTE: Some files were truncated to fit analysis limits.\n${truncationNotes.join('\n')}\n\n`
+      : '';
+
+    const fileContext = preface + processedFiles
+      .map((f) => `File: ${f.name}\n${f.content}`)
+      .join('\n\n');
 
     const systemPrompt = `You are an expert QA testing engineer analyzing files for quality, bugs, security issues, and best practices.
 
@@ -258,9 +289,30 @@ For each finding, provide:
     if (!response.ok) {
       const errorText = await response.text();
       console.error('AI API error:', response.status, errorText);
+      const fallbackReport = {
+        summary: {
+          totalFiles: filesToAnalyze.length,
+          criticalIssues: 0,
+          highPriorityIssues: 0,
+          warnings: 1,
+          passedChecks: 0,
+          overallStatus: 'warning'
+        },
+        criticalIssues: [],
+        highPriorityIssues: [],
+        warnings: [
+          {
+            type: 'quality',
+            description: `AI analysis service returned ${response.status}. Showing a minimal report instead.`,
+            location: 'analyze-project-qa',
+            recommendation: 'Please try again later or reduce the number/size of files and retry.'
+          }
+        ],
+        passedChecks: []
+      };
       return new Response(
-        JSON.stringify({ error: `AI service error: ${response.status}. Please try again.` }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify(fallbackReport),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -339,9 +391,30 @@ For each finding, provide:
     );
   } catch (error) {
     console.error('Error analyzing project:', error);
+    const fallbackReport = {
+      summary: {
+        totalFiles: filesCount,
+        criticalIssues: 0,
+        highPriorityIssues: 0,
+        warnings: 1,
+        passedChecks: 0,
+        overallStatus: 'warning'
+      },
+      criticalIssues: [],
+      highPriorityIssues: [],
+      warnings: [
+        {
+          type: 'quality',
+          description: 'An unexpected error occurred during analysis. Showing a minimal report instead.',
+          location: 'analyze-project-qa',
+          recommendation: 'Please try again later or reduce the number/size of files and retry.'
+        }
+      ],
+      passedChecks: []
+    };
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify(fallbackReport),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
