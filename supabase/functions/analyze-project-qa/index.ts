@@ -126,11 +126,108 @@ serve(async (req) => {
       .map((f) => `File: ${f.name}\n${f.content}`)
       .join('\n\n');
 
-    const systemPrompt = `You are an expert QA testing engineer analyzing files for quality, bugs, security issues, and best practices.
-
-**CRITICAL REQUIREMENT**: You MUST find and report positive aspects in every analysis. Even files with issues have things done correctly. A QA report that only lists problems is incomplete and demotivating.
-
-**YOUR TASK**: Create a balanced QA test report identifying BOTH issues AND good practices.
+    const systemPrompt = `You are an expert QA automation engineer. Analyze the provided files and generate the MOST COMPREHENSIVE QA test report possible.
+    
+    Test EVERYTHING including but not limited to:
+    
+    FUNCTIONALITY TESTS:
+    - All interactive elements (buttons, links, forms, inputs)
+    - Navigation flows and routing
+    - Data validation and error handling
+    - API calls and responses
+    - State management
+    - User workflows and user journeys
+    - Edge cases and boundary conditions
+    - Cross-browser compatibility (Chrome, Firefox, Safari, Edge)
+    - Mobile responsiveness and touch interactions
+    - Print functionality
+    - Search functionality
+    - Filters and sorting
+    - Pagination
+    - File uploads/downloads
+    - Drag and drop features
+    
+    SECURITY TESTS:
+    - XSS vulnerabilities
+    - SQL injection risks
+    - CSRF protection
+    - Authentication mechanisms
+    - Authorization and access control
+    - Session management
+    - Input sanitization
+    - Secure data transmission (HTTPS)
+    - Password strength requirements
+    - API security
+    - Sensitive data exposure
+    - Security headers
+    - Cookie security
+    - Rate limiting
+    
+    ACCESSIBILITY TESTS (WCAG 2.1):
+    - Keyboard navigation (tab order, focus indicators)
+    - Screen reader compatibility
+    - ARIA labels and roles
+    - Color contrast ratios
+    - Text alternatives for images
+    - Form labels and error messages
+    - Focus management
+    - Skip navigation links
+    - Semantic HTML structure
+    - Resizable text
+    - Alternative input methods
+    
+    PERFORMANCE TESTS:
+    - Page load times
+    - Asset optimization
+    - Caching strategies
+    - Bundle size analysis
+    - Memory leaks
+    - Network requests optimization
+    - Lazy loading implementation
+    - Database query optimization
+    
+    USABILITY TESTS:
+    - User interface intuitiveness
+    - Error message clarity
+    - Loading indicators
+    - Feedback mechanisms
+    - Consistency in design
+    - Help documentation
+    
+    UI/VISUAL TESTS:
+    - Layout consistency
+    - Responsive breakpoints
+    - Image quality and optimization
+    - Font rendering
+    - Color schemes
+    - Spacing and alignment
+    - Animation smoothness
+    
+    COMPATIBILITY TESTS:
+    - Browser compatibility (Chrome, Firefox, Safari, Edge, Opera)
+    - Device compatibility (Desktop, Tablet, Mobile)
+    - Operating system compatibility
+    - Screen resolution variations
+    - Dark mode / Light mode
+    
+    DATA TESTS:
+    - Input validation
+    - Data persistence
+    - Data integrity
+    - Database constraints
+    - Backup and recovery
+    
+    **CRITICAL REQUIREMENT**: You MUST find and report positive aspects. Even files with issues have things done correctly.
+    
+    For each test, provide:
+    1. Specific test name
+    2. Status: "pass" (working perfectly), "partial" (works but has issues), or "fail" (broken/not working)
+    3. Detailed description of what was tested
+    4. Exact actions performed to test
+    5. Expected vs actual results
+    6. Any recommendations for improvement
+    
+    **YOUR TASK**: Create a balanced comprehensive QA test report identifying BOTH issues AND good practices.
 
 CRITICAL ISSUES (Must Fix):
 - Security vulnerabilities (SQL injection, XSS, authentication bypass, exposed secrets)
@@ -262,9 +359,33 @@ For each finding, provide:
                       location: { type: 'string' }
                     }
                   }
+                },
+                detailedTests: {
+                  type: 'array',
+                  description: 'Comprehensive list of ALL tests performed for PDF report generation',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      category: { type: 'string', description: 'Test category (Functionality, Security, Accessibility, Performance, etc.)' },
+                      testName: { type: 'string', description: 'Specific test name' },
+                      status: { type: 'string', enum: ['pass', 'partial', 'fail'] },
+                      description: { type: 'string', description: 'What was tested' },
+                      actions: { type: 'string', description: 'Step-by-step actions performed' },
+                      details: { type: 'string', description: 'Expected vs actual results and recommendations' }
+                    },
+                    required: ['category', 'testName', 'status', 'description', 'actions', 'details']
+                  }
+                },
+                metadata: {
+                  type: 'object',
+                  properties: {
+                    source: { type: 'string' },
+                    analyzedFiles: { type: 'number' },
+                    totalLines: { type: 'number' }
+                  }
                 }
               },
-              required: ['summary', 'criticalIssues', 'highPriorityIssues', 'warnings', 'passedChecks']
+              required: ['summary', 'criticalIssues', 'highPriorityIssues', 'warnings', 'passedChecks', 'detailedTests', 'metadata']
             }
           }
         }],
@@ -296,7 +417,8 @@ For each finding, provide:
           highPriorityIssues: 0,
           warnings: 1,
           passedChecks: 0,
-          overallStatus: 'warning'
+          overallStatus: 'warning',
+          source: filesToAnalyze[0]?.name || filesToAnalyze[0]?.path || 'Unknown'
         },
         criticalIssues: [],
         highPriorityIssues: [],
@@ -308,7 +430,13 @@ For each finding, provide:
             recommendation: 'Please try again later or reduce the number/size of files and retry.'
           }
         ],
-        passedChecks: []
+        passedChecks: [],
+        detailedTests: [],
+        metadata: {
+          source: filesToAnalyze[0]?.name || filesToAnalyze[0]?.path || 'Unknown',
+          analyzedFiles: filesToAnalyze.length,
+          totalLines: 0
+        }
       };
       return new Response(
         JSON.stringify(fallbackReport),
@@ -398,7 +526,8 @@ For each finding, provide:
         highPriorityIssues: 0,
         warnings: 1,
         passedChecks: 0,
-        overallStatus: 'warning'
+        overallStatus: 'warning',
+        source: 'Unknown'
       },
       criticalIssues: [],
       highPriorityIssues: [],
@@ -410,7 +539,13 @@ For each finding, provide:
           recommendation: 'Please try again later or reduce the number/size of files and retry.'
         }
       ],
-      passedChecks: []
+      passedChecks: [],
+      detailedTests: [],
+      metadata: {
+        source: 'Unknown',
+        analyzedFiles: filesCount,
+        totalLines: 0
+      }
     };
     return new Response(
       JSON.stringify(fallbackReport),

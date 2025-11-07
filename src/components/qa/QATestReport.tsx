@@ -6,6 +6,7 @@ import { AlertCircle, AlertTriangle, CheckCircle, Info, Languages } from "lucide
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { toast } from "sonner";
+import { STDReportDownload } from "./STDReportDownload";
 
 interface QAReportItem {
   type: string;
@@ -192,18 +193,21 @@ export const QATestReport = ({ report }: QATestReportProps) => {
     <div className="space-y-6">
       {/* Summary Card */}
       <Card className="p-6 glass-premium">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
           <div>
             <h2 className="text-2xl font-bold mb-2">QA Test Report</h2>
             <p className="text-muted-foreground">
               Analyzed {summary.totalFiles} file{summary.totalFiles !== 1 ? 's' : ''}
             </p>
           </div>
-          <div className={`flex items-center gap-3 ${getStatusColor(summary.overallStatus)}`}>
-            {getStatusIcon(summary.overallStatus)}
-            <div className="text-right">
-              <div className="text-2xl font-bold uppercase">{summary.overallStatus}</div>
-              <div className="text-sm">Overall Status</div>
+          <div className="flex items-center gap-3">
+            <STDReportDownload report={report} />
+            <div className={`flex items-center gap-3 ${getStatusColor(summary.overallStatus)}`}>
+              {getStatusIcon(summary.overallStatus)}
+              <div className="text-right">
+                <div className="text-2xl font-bold uppercase">{summary.overallStatus}</div>
+                <div className="text-sm">Overall Status</div>
+              </div>
             </div>
           </div>
         </div>

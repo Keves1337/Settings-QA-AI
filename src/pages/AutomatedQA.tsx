@@ -74,6 +74,18 @@ const AutomatedQA = () => {
         throw new Error('No data returned from analysis');
       }
 
+      // Add metadata if not present
+      if (!data.metadata) {
+        data.metadata = {
+          source: url,
+          analyzedFiles: 1,
+          totalLines: content.split('\n').length
+        };
+      }
+      if (!data.summary.source) {
+        data.summary.source = url;
+      }
+
       setQaReport(data);
       
       const status = data.summary?.overallStatus || 'unknown';
@@ -162,6 +174,18 @@ const AutomatedQA = () => {
 
       if (!data) {
         throw new Error('No data returned from analysis');
+      }
+
+      // Add metadata if not present  
+      if (!data.metadata) {
+        data.metadata = {
+          source: files.map(f => f.name).join(', '),
+          analyzedFiles: files.length,
+          totalLines: fileContents.reduce((sum, f) => sum + f.content.split('\n').length, 0)
+        };
+      }
+      if (!data.summary.source) {
+        data.summary.source = files[0]?.name || 'Unknown';
       }
 
       setQaReport(data);
