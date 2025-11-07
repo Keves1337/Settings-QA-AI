@@ -17,6 +17,8 @@ const AutomatedQA = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [url, setUrl] = useState('');
+  const [progress, setProgress] = useState(0);
+  const [progressMessage, setProgressMessage] = useState('');
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -39,37 +41,85 @@ const AutomatedQA = () => {
     setIsGenerating(true);
     setQaReport(null);
     setUploadedFiles([]);
+    setProgress(0);
+    setProgressMessage('Starting analysis...');
 
     try {
-      // Send URL to backend - it will fetch and analyze
-      const { data, error } = await supabase.functions.invoke('analyze-project-qa', {
-        body: { url: url.trim() }
-      });
+      // Use streaming endpoint with progress updates
+      const authHeader = (await supabase.auth.getSession()).data.session?.access_token;
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-project-qa`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authHeader}`,
+          },
+          body: JSON.stringify({ url: url.trim(), streaming: true })
+        }
+      );
 
-      if (error) {
-        console.error('Edge function error:', error);
-        throw new Error(error.message || 'Failed to analyze URL');
+      if (!response.ok) {
+        throw new Error(`Failed to analyze URL: ${response.status}`);
       }
 
-      if (!data) {
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let finalData = null;
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              if (data === '[DONE]') continue;
+              
+              try {
+                const parsed = JSON.parse(data);
+                if (parsed.progress !== undefined) {
+                  setProgress(parsed.progress);
+                  setProgressMessage(parsed.message || '');
+                } else if (parsed.summary) {
+                  // Final result
+                  finalData = parsed;
+                }
+              } catch (e) {
+                console.error('Failed to parse SSE data:', e);
+              }
+            }
+          }
+        }
+      }
+
+      if (!finalData) {
         throw new Error('No data returned from analysis');
       }
 
       // Add metadata if not present
-      if (!data.metadata) {
-        data.metadata = {
+      if (!finalData.metadata) {
+        finalData.metadata = {
           source: url,
           analyzedFiles: 1,
           totalLines: 0
         };
       }
-      if (!data.summary.source) {
-        data.summary.source = url;
+      if (!finalData.summary.source) {
+        finalData.summary.source = url;
       }
 
-      setQaReport(data);
+      setQaReport(finalData);
+      setProgress(100);
+      setProgressMessage('Analysis complete!');
       
-      const status = data.summary?.overallStatus || 'unknown';
+      const status = finalData.summary?.overallStatus || 'unknown';
       const statusMessages = {
         pass: '✅ All tests passed!',
         warning: '⚠️ Tests completed with warnings',
@@ -89,6 +139,8 @@ const AutomatedQA = () => {
         description: errorMessage,
         variant: "destructive",
       });
+      setProgress(0);
+      setProgressMessage('');
     } finally {
       setIsGenerating(false);
     }
@@ -118,8 +170,12 @@ const AutomatedQA = () => {
     setUploadedFiles(files);
     setIsGenerating(true);
     setQaReport(null);
+    setProgress(0);
+    setProgressMessage('Preparing files...');
 
     try {
+      setProgress(10);
+      setProgressMessage('Reading file contents...');
       // Read file contents with safe truncation to avoid oversized requests
       const MAX_PER_FILE = 200_000; // 200KB per file
       const MAX_TOTAL = 800_000;    // 800KB overall
@@ -127,7 +183,10 @@ const AutomatedQA = () => {
       const truncationNotes: string[] = [];
 
       const fileContents: Array<{ name: string; content: string; type: string }> = [];
-      for (const file of files) {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        setProgress(10 + (i / files.length) * 20);
+        setProgressMessage(`Reading ${file.name}...`);
         let text = await file.text();
         if (text.length > MAX_PER_FILE) {
           truncationNotes.push(`- ${file.name}: truncated to ${MAX_PER_FILE} chars`);
@@ -144,9 +203,70 @@ const AutomatedQA = () => {
         if (totalChars >= MAX_TOTAL) break;
       }
 
-      const { data, error } = await supabase.functions.invoke('analyze-project-qa', {
-        body: { files: fileContents }
-      });
+      setProgress(30);
+      setProgressMessage('Sending to AI for analysis...');
+
+      // Use streaming endpoint with progress updates
+      const authHeader = (await supabase.auth.getSession()).data.session?.access_token;
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-project-qa`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authHeader}`,
+          },
+          body: JSON.stringify({ files: fileContents, streaming: true })
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to analyze files: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let finalData = null;
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              if (data === '[DONE]') continue;
+              
+              try {
+                const parsed = JSON.parse(data);
+                if (parsed.progress !== undefined) {
+                  // Map backend progress (30-100) to frontend progress (30-100)
+                  setProgress(30 + (parsed.progress * 0.7));
+                  setProgressMessage(parsed.message || '');
+                } else if (parsed.summary) {
+                  // Final result
+                  finalData = parsed;
+                }
+              } catch (e) {
+                console.error('Failed to parse SSE data:', e);
+              }
+            }
+          }
+        }
+      }
+
+      if (!finalData) {
+        throw new Error('No data returned from analysis');
+      }
+
+      const data = finalData;
+      const error = null;
 
       if (error) {
         console.error('Edge function error:', error);
@@ -170,6 +290,8 @@ const AutomatedQA = () => {
       }
 
       setQaReport(data);
+      setProgress(100);
+      setProgressMessage('Analysis complete!');
       
       const status = data.summary?.overallStatus || 'unknown';
       const statusMessages = {
@@ -191,6 +313,8 @@ const AutomatedQA = () => {
         description: errorMessage,
         variant: "destructive",
       });
+      setProgress(0);
+      setProgressMessage('');
     } finally {
       setIsGenerating(false);
     }
@@ -290,6 +414,20 @@ const AutomatedQA = () => {
                   onFilesUploaded={handleFilesUploaded}
                   isProcessing={isGenerating}
                 />
+                {isGenerating && (
+                  <div className="mt-4 space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">{progressMessage}</span>
+                      <span className="font-medium">{Math.round(progress)}%</span>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                      <div 
+                        className="h-full bg-primary transition-all duration-300 ease-out"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
                 {uploadedFiles.length > 0 && (
                   <div className="mt-4">
                     <h3 className="font-medium mb-2">Uploaded Files:</h3>
