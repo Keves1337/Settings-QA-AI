@@ -36,9 +36,47 @@ serve(async (req) => {
       });
     }
 
-    const { files, projectFiles, deepAnalysis = true } = await req.json();
-    const filesToAnalyze = files || projectFiles;
-    filesCount = filesToAnalyze.length;
+    const { files, projectFiles, url, deepAnalysis = true } = await req.json();
+    
+    let filesToAnalyze;
+    
+    // Handle URL fetching on backend (avoids CORS issues)
+    if (url) {
+      try {
+        console.log('Fetching URL:', url);
+        const urlResponse = await fetch(url);
+        if (!urlResponse.ok) {
+          return new Response(
+            JSON.stringify({ error: `Failed to fetch URL: ${urlResponse.status} ${urlResponse.statusText}` }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        let content = await urlResponse.text();
+        const MAX_CONTENT = 800_000;
+        
+        if (content.length > MAX_CONTENT) {
+          console.log(`Content truncated from ${content.length} to ${MAX_CONTENT}`);
+          content = content.slice(0, MAX_CONTENT);
+        }
+        
+        filesToAnalyze = [{
+          name: url,
+          content: content,
+          type: urlResponse.headers.get('content-type') || 'text/html'
+        }];
+      } catch (fetchError: any) {
+        console.error('Error fetching URL:', fetchError);
+        return new Response(
+          JSON.stringify({ error: `Failed to fetch URL: ${fetchError.message}` }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    } else {
+      filesToAnalyze = files || projectFiles;
+    }
+    
+    filesCount = filesToAnalyze?.length || 0;
     
     // Input validation
     if (!filesToAnalyze || !Array.isArray(filesToAnalyze)) {

@@ -41,28 +41,9 @@ const AutomatedQA = () => {
     setUploadedFiles([]);
 
     try {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error('Failed to fetch URL content');
-      
-      let content = await response.text();
-      const MAX_CONTENT = 800_000;
-      
-      if (content.length > MAX_CONTENT) {
-        content = content.slice(0, MAX_CONTENT);
-        toast({
-          title: "Content Truncated",
-          description: `Content was truncated to ${MAX_CONTENT} characters`,
-        });
-      }
-
-      const fileContents = [{
-        name: url,
-        content: content,
-        type: response.headers.get('content-type') || 'text/html'
-      }];
-
+      // Send URL to backend - it will fetch and analyze
       const { data, error } = await supabase.functions.invoke('analyze-project-qa', {
-        body: { files: fileContents }
+        body: { url: url.trim() }
       });
 
       if (error) {
@@ -79,7 +60,7 @@ const AutomatedQA = () => {
         data.metadata = {
           source: url,
           analyzedFiles: 1,
-          totalLines: content.split('\n').length
+          totalLines: 0
         };
       }
       if (!data.summary.source) {
