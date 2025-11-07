@@ -16,6 +16,7 @@ const AutomatedQA = () => {
   const [qaReport, setQaReport] = useState<any>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [url, setUrl] = useState('');
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -23,6 +24,81 @@ const AutomatedQA = () => {
       title: "Signed out",
       description: "You have been signed out successfully",
     });
+  };
+
+  const handleUrlAnalysis = async () => {
+    if (!url.trim()) {
+      toast({
+        title: "URL Required",
+        description: "Please enter a URL to analyze",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+    setQaReport(null);
+    setUploadedFiles([]);
+
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to fetch URL content');
+      
+      let content = await response.text();
+      const MAX_CONTENT = 800_000;
+      
+      if (content.length > MAX_CONTENT) {
+        content = content.slice(0, MAX_CONTENT);
+        toast({
+          title: "Content Truncated",
+          description: `Content was truncated to ${MAX_CONTENT} characters`,
+        });
+      }
+
+      const fileContents = [{
+        name: url,
+        content: content,
+        type: response.headers.get('content-type') || 'text/html'
+      }];
+
+      const { data, error } = await supabase.functions.invoke('analyze-project-qa', {
+        body: { files: fileContents }
+      });
+
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error(error.message || 'Failed to analyze URL');
+      }
+
+      if (!data) {
+        throw new Error('No data returned from analysis');
+      }
+
+      setQaReport(data);
+      
+      const status = data.summary?.overallStatus || 'unknown';
+      const statusMessages = {
+        pass: '✅ All tests passed!',
+        warning: '⚠️ Tests completed with warnings',
+        fail: '❌ Critical issues found'
+      };
+      
+      toast({
+        title: "QA Analysis Complete",
+        description: statusMessages[status] || "Analysis completed",
+        variant: status === 'fail' ? 'destructive' : 'default'
+      });
+    } catch (error: any) {
+      console.error('Error analyzing URL:', error);
+      const errorMessage = error?.message || error?.error || "Failed to analyze URL. Please try again.";
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleFilesUploaded = async (files: File[]) => {
@@ -169,6 +245,34 @@ const AutomatedQA = () => {
           </TabsList>
 
           <TabsContent value="upload" className="space-y-6">
+            <Card className="p-6">
+              <div className="space-y-4">
+                <div>
+                  <h2 className="text-xl font-semibold mb-2">Analyze URL</h2>
+                  <p className="text-muted-foreground">
+                    Enter a URL to instantly fetch and analyze its content
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    placeholder="https://example.com"
+                    className="flex-1 px-3 py-2 rounded-md border border-border bg-background"
+                    disabled={isGenerating}
+                  />
+                  <Button 
+                    onClick={handleUrlAnalysis}
+                    disabled={isGenerating || !url.trim()}
+                  >
+                    <Zap className="w-4 h-4 mr-2" />
+                    Analyze URL
+                  </Button>
+                </div>
+              </div>
+            </Card>
+
             <Card className="p-6">
               <div className="space-y-4">
                 <div>
