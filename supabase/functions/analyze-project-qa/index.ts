@@ -158,65 +158,124 @@ serve(async (req) => {
             controller.enqueue(encoder.encode(sendProgress(50, 'Sending to AI for analysis...')));
 
             // Construct system prompt (same as non-streaming)
-            const systemPrompt = `You are an expert QA automation engineer. Analyze the provided files and generate the MOST COMPREHENSIVE QA test report possible.
+            const systemPrompt = `You are an expert QA automation engineer. Analyze the provided files and generate the MOST COMPREHENSIVE, EXHAUSTIVE, and EXTREME QA test report possible.
     
-    Test EVERYTHING including but not limited to:
+    **CRITICAL INSTRUCTION**: Generate AT LEAST 50-100+ test scenarios. Include EVERY possible test you can think of, even the most bizarre, edge-case, and unusual scenarios. Test EVERYTHING including but not limited to:
     
-    FUNCTIONALITY TESTS:
-    - All interactive elements (buttons, links, forms, inputs)
-    - Navigation flows and routing
-    - Data validation and error handling
-    - API calls and responses
-    - State management
-    - User workflows and user journeys
-    - Edge cases and boundary conditions
-    - Cross-browser compatibility (Chrome, Firefox, Safari, Edge)
-    - Mobile responsiveness and touch interactions
-    - Print functionality
-    - Search functionality
-    - Filters and sorting
-    - Pagination
-    - File uploads/downloads
-    - Drag and drop features
+    FUNCTIONALITY TESTS (Test ALL of these):
+    - Every single button, link, form field, checkbox, radio button
+    - Navigation: forward, back, refresh, direct URL entry
+    - Forms: empty submission, max length, special characters, emojis, SQL-like strings
+    - Inputs: negative numbers, decimal precision, leading zeros, scientific notation
+    - Text fields: 0 chars, 1 char, max chars, max+1 chars, only spaces, only special chars
+    - Dropdowns: first item, last item, middle item, no selection
+    - Multi-select: none, one, all, maximum allowed
+    - Date pickers: past dates, future dates, leap years, Feb 29, invalid dates, year 1900, year 2100
+    - Time inputs: midnight, noon, 23:59, invalid times, different timezones
+    - File uploads: 0 bytes, max size, oversized, wrong format, corrupted files, zero-byte files
+    - Drag and drop: partial drag, cancel drag, drag to invalid area, multiple simultaneous drags
+    - Copy/paste: empty clipboard, huge clipboard content, binary data, formatted text
+    - Keyboard shortcuts: Ctrl+Z, Ctrl+Y, Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+S, F5, Escape
+    - Mouse: single click, double click, triple click, right click, middle click, scroll wheel
+    - Touch: single tap, double tap, long press, swipe, pinch zoom, rotate
+    - Browser back button after form submission
+    - Browser refresh during operation
+    - Opening links in new tab/window
+    - Printing pages
+    - Page zoom: 50%, 100%, 200%, 400%
+    - Window resize: minimum size, maximum size, during operation
+    - Network: slow 3G, offline mode, intermittent connection, packet loss
+    - API: success, 400, 401, 403, 404, 500, timeout, malformed response
+    - State: login/logout cycles, session timeout, concurrent sessions
+    - URLs: with query params, with hash fragments, encoded characters, very long URLs
+    - Search: empty query, single char, exact match, partial match, no results, special chars
+    - Pagination: first page, last page, middle page, invalid page number, negative page
+    - Sorting: ascending, descending, multiple columns, null values
+    - Filters: single filter, multiple filters, conflicting filters, clear all
+    - Autocomplete: no results, single result, many results, special characters
     
-    SECURITY TESTS:
-    - XSS vulnerabilities
-    - SQL injection risks
-    - CSRF protection
-    - Authentication mechanisms
-    - Authorization and access control
-    - Session management
-    - Input sanitization
-    - Secure data transmission (HTTPS)
-    - Password strength requirements
-    - API security
-    - Sensitive data exposure
-    - Security headers
-    - Cookie security
-    - Rate limiting
+    SECURITY TESTS (Test ALL attack vectors):
+    - XSS: <script>alert(1)</script>, javascript:, onerror=, <img src=x onerror=alert(1)>
+    - SQL Injection: ' OR '1'='1, '; DROP TABLE users--, 1' UNION SELECT NULL--
+    - Path traversal: ../../../etc/passwd, ....//....//....//
+    - Command injection: ; ls, | whoami, && cat /etc/passwd
+    - LDAP injection, XML injection, XXE attacks
+    - Template injection: {{7*7}}, ${7*7}, <%= 7*7 %>
+    - Server-side request forgery (SSRF)
+    - Open redirect vulnerabilities
+    - CSRF token validation: missing, invalid, expired, reused
+    - Authentication bypass: empty password, null password, admin/admin
+    - Session fixation, session hijacking
+    - Brute force protection: multiple failed logins
+    - Password requirements: min length, complexity, common passwords
+    - API keys: exposed in HTML, in URLs, in console logs
+    - HTTPS: mixed content, certificate validation
+    - Security headers: CSP, X-Frame-Options, HSTS, X-Content-Type-Options
+    - Cookie flags: HttpOnly, Secure, SameSite
+    - CORS misconfiguration
+    - Clickjacking protection
+    - Information disclosure: error messages, stack traces, version info
+    - File upload restrictions: .exe, .php, .jsp, .svg with scripts
+    - Rate limiting: rapid requests, DoS attempts
+    - Access control: horizontal privilege escalation, vertical privilege escalation
+    - JWT validation: signature verification, expiration, algorithm confusion
     
-    ACCESSIBILITY TESTS (WCAG 2.1):
-    - Keyboard navigation (tab order, focus indicators)
-    - Screen reader compatibility
-    - ARIA labels and roles
-    - Color contrast ratios
-    - Text alternatives for images
-    - Form labels and error messages
-    - Focus management
-    - Skip navigation links
-    - Semantic HTML structure
-    - Resizable text
-    - Alternative input methods
+    ACCESSIBILITY TESTS (WCAG 2.1 Level AAA):
+    - Keyboard ONLY navigation: Tab, Shift+Tab, Enter, Space, Arrow keys, Escape
+    - Screen reader: NVDA, JAWS, VoiceOver, TalkBack
+    - ARIA: labels, roles, states, live regions, hidden, describedby, labelledby
+    - Focus indicators: visible, high contrast, not hidden
+    - Focus trap: modals, dialogs, dropdowns
+    - Skip links: to main content, to navigation
+    - Heading hierarchy: H1 unique, H2-H6 properly nested
+    - Landmark regions: header, nav, main, aside, footer
+    - Images: alt text, decorative images with empty alt
+    - Form labels: associated with inputs, error messages, required indicators
+    - Color contrast: text 4.5:1, large text 3:1, UI components 3:1
+    - Color not the only indicator: error states, success states
+    - Text resize: 200% without loss of functionality
+    - Responsive text: small screens, large screens
+    - Link text: descriptive, not "click here" or "read more"
+    - Button vs link: proper semantic usage
+    - Tables: header cells, captions, summaries
+    - Lists: proper ul/ol/dl usage
+    - Language attribute: lang="en", lang changes
+    - Page title: unique, descriptive
+    - Touch targets: minimum 44x44px
+    - Motion: respects prefers-reduced-motion
+    - Flashing content: no seizure triggers
+    - Audio/video: captions, transcripts, audio descriptions
+    - Forms: autocomplete attributes, error prevention, confirmation
     
-    PERFORMANCE TESTS:
-    - Page load times
-    - Asset optimization
-    - Caching strategies
-    - Bundle size analysis
-    - Memory leaks
-    - Network requests optimization
-    - Lazy loading implementation
-    - Database query optimization
+    PERFORMANCE TESTS (Stress test everything):
+    - Page load time: <1s, <2s, >5s concerning
+    - First Contentful Paint (FCP)
+    - Largest Contentful Paint (LCP)
+    - Time to Interactive (TTI)
+    - Total Blocking Time (TBT)
+    - Cumulative Layout Shift (CLS)
+    - Asset sizes: images, CSS, JavaScript, fonts
+    - Compression: gzip, brotli
+    - Caching headers: Cache-Control, ETag, Last-Modified
+    - CDN usage for static assets
+    - Bundle analysis: unused code, duplicate dependencies
+    - Code splitting: route-based, component-based
+    - Tree shaking effectiveness
+    - Lazy loading: images, components, routes
+    - Preloading critical resources
+    - Prefetching next pages
+    - Service worker: caching strategy, offline support
+    - Memory usage: heap size, garbage collection
+    - Memory leaks: detached DOM nodes, event listeners
+    - CPU usage: heavy computations, infinite loops
+    - Network waterfall: parallel vs serial requests
+    - API response times: average, p95, p99
+    - Database query performance: N+1 queries, missing indexes
+    - Third-party scripts: impact on performance
+    - Large dataset handling: 100 items, 1000 items, 10000 items
+    - Pagination vs infinite scroll performance
+    - Real User Monitoring (RUM) data
+    - Lighthouse score: Performance, Accessibility, Best Practices, SEO
     
     USABILITY TESTS:
     - User interface intuitiveness
@@ -235,31 +294,104 @@ serve(async (req) => {
     - Spacing and alignment
     - Animation smoothness
     
-    COMPATIBILITY TESTS:
-    - Browser compatibility (Chrome, Firefox, Safari, Edge, Opera)
-    - Device compatibility (Desktop, Tablet, Mobile)
-    - Operating system compatibility
-    - Screen resolution variations
-    - Dark mode / Light mode
+    COMPATIBILITY TESTS (Test on everything):
+    - Browsers: Chrome (latest, -1, -2), Firefox (latest, ESR), Safari (latest, iOS), Edge, Opera, Samsung Internet, UC Browser
+    - Browser versions: latest stable, one version back, two versions back, beta, developer
+    - Devices: Desktop (Windows, Mac, Linux), Tablet (iPad, Android), Mobile (iPhone, Android)
+    - Screen sizes: 320px (iPhone SE), 375px (iPhone), 768px (iPad), 1024px, 1366px, 1920px, 2560px, 4K
+    - Orientations: portrait, landscape, rotation during use
+    - Pixel densities: 1x, 2x, 3x (Retina)
+    - Operating systems: Windows 11, Windows 10, macOS Ventura, macOS Monterey, Ubuntu, iOS 17, iOS 16, Android 14, Android 13
+    - Color schemes: light mode, dark mode, high contrast mode, auto-switching
+    - Browser settings: JavaScript disabled, cookies disabled, ad blockers, privacy extensions
+    - Input methods: mouse, keyboard, touch, stylus, gamepad, voice
+    - Assistive tech: screen readers, screen magnifiers, speech recognition, switch controls
+    - Network conditions: WiFi, 4G, 3G, 2G, offline
+    - Battery saver mode impact
+    - Reduced data mode
+    - Print preview in different browsers
+    - PDF generation from different sources
+    - Email client rendering (if applicable)
+    - Embedded iframe behavior
     
-    DATA TESTS:
-    - Input validation
-    - Data persistence
-    - Data integrity
-    - Database constraints
-    - Backup and recovery
+    DATA TESTS (Break everything with data):
+    - Input validation: type checking, range checking, format validation
+    - Boundary values: min-1, min, min+1, max-1, max, max+1
+    - Data types: null, undefined, NaN, Infinity, -Infinity, true, false, 0, "", [], {}
+    - Special characters: quotes, apostrophes, backslashes, unicode, emojis, RTL text
+    - Very long strings: 1000 chars, 10000 chars, 1MB of text
+    - Very large numbers: Number.MAX_VALUE, beyond limits
+    - Negative numbers in unexpected places
+    - Decimal precision: 0.1 + 0.2, floating point errors
+    - Currency: different symbols, different decimal separators
+    - Dates: Unix epoch, far future, daylight saving time transitions
+    - Timezones: UTC, local time, different timezones, timezone changes
+    - Arrays: empty, single item, many items, nested arrays, circular references
+    - Objects: empty, missing keys, extra keys, nested objects, circular references
+    - JSON: malformed, extremely nested, very large
+    - XML: malformed, XXE attacks, billion laughs
+    - CSV: missing columns, extra columns, quoted fields, embedded newlines
+    - File formats: valid, corrupted, wrong extension, empty files
+    - Data persistence: localStorage, sessionStorage, IndexedDB, cookies
+    - Data across page refresh, browser restart, different tabs
+    - Concurrent edits: two users editing same data
+    - Race conditions: rapid successive operations
+    - Database constraints: unique, foreign key, check constraints
+    - Transactions: rollback, commit, isolation levels
+    - SQL injection in stored data
+    - Backup and recovery: restore from backup, point-in-time recovery
+    - Data migration: version upgrades, rollbacks
+    - Data export: CSV, JSON, Excel, PDF formats
+    - Data import: validation, duplicate handling, error recovery
+    - Internationalization: different languages, character sets, number formats, date formats
+    - Localization: currency, address formats, postal codes, phone numbers
     
-    **CRITICAL REQUIREMENT**: You MUST find and report positive aspects. Even files with issues have things done correctly.
+    BIZARRE AND RANDOM TESTS (Think outside the box):
+    - Rapid clicking/tapping same button 100 times
+    - Opening 50 tabs of the same page simultaneously
+    - Holding down Enter key for 10 seconds on a form
+    - Entering "Robert'); DROP TABLE Students;--" in name field
+    - Using browser developer tools to modify DOM during operation
+    - Changing system time during session
+    - Using browser translate feature
+    - Entering emoji in every input field 🎉🔥💀
+    - Testing with adblockers and privacy extensions
+    - Using browser auto-fill with incorrect data
+    - Submitting form while network disconnects mid-request
+    - Using "Inspect Element" to bypass disabled buttons
+    - Pressing Ctrl+W (close window) during critical operation
+    - Using browser password managers
+    - Testing with maximum browser zoom (500%+)
+    - Leaving page idle for hours and returning
+    - Changing browser language during use
+    - Using browser reader mode if available
+    - Taking screenshots during sensitive operations
+    - Using browser picture-in-picture mode
+    - Testing with strict CSP policies
+    - Using VPN or proxy with geolocation changes
+    - Testing with system sounds muted
+    - Using browser extensions that modify page content
+    - Testing with battery saver mode enabled
+    - Rapidly switching between apps/windows
+    - Using split screen or multiple monitors
+    - Testing during system updates
+    - Using remote desktop or screen sharing
+    - Testing with virtualized environments
+    - Testing with containers and sandboxing
     
-    For each test, provide:
-    1. Specific test name
-    2. Status: "pass" (working perfectly), "partial" (works but has issues), or "fail" (broken/not working)
-    3. Detailed description of what was tested
-    4. Exact actions performed to test
-    5. Expected vs actual results
-    6. Any recommendations for improvement
+    **CRITICAL**: Generate AT LEAST 50-100 detailed test scenarios. Do NOT summarize. Each test must be explicit, specific, and actionable.
     
-    **YOUR TASK**: Create a balanced comprehensive QA test report identifying BOTH issues AND good practices.
+    **REQUIREMENT**: You MUST find and report positive aspects too. Even files with issues have things done correctly.
+    
+    For EACH test in detailedTests array, provide:
+    1. category: The test category name
+    2. testName: Specific, descriptive test name
+    3. status: "pass" (working perfectly), "partial" (works but has issues), or "fail" (broken/not working)
+    4. description: What was tested (be specific)
+    5. actions: Exact step-by-step actions performed
+    6. details: Expected vs actual results and any recommendations
+    
+    **YOUR TASK**: Create the most exhaustive, detailed, comprehensive QA test report possible with 50-100+ test scenarios.
 
 CRITICAL ISSUES (Must Fix):
 - Security vulnerabilities (SQL injection, XSS, authentication bypass, exposed secrets)

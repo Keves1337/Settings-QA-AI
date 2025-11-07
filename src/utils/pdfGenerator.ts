@@ -66,34 +66,30 @@ export const generateSTDReport = (testResults: TestResult[], metadata: any) => {
   
   // Group results by category
   const categories = Array.from(new Set(testResults.map(r => r.category)));
-  let yPosition = 65;
+  let startY = 65;
   
   categories.forEach((category, index) => {
     const categoryResults = testResults.filter(r => r.category === category);
     
-    // Add new page if needed
-    if (yPosition > 170) {
-      doc.addPage();
-      yPosition = 20;
-    }
-    
     // Category header
     doc.setFontSize(14);
     doc.setTextColor(0, 0, 0);
-    doc.text(category.toUpperCase(), 14, yPosition);
-    yPosition += 5;
+    doc.setFillColor(230, 230, 230);
+    doc.rect(14, startY - 5, 270, 8, 'F');
+    doc.text(category.toUpperCase(), 16, startY);
+    startY += 5;
     
-    // Create table data
+    // Create table data with proper text wrapping
     const tableData = categoryResults.map(result => [
-      result.testName,
+      result.testName || 'N/A',
       getStatusText(result.status),
-      result.description,
-      result.actions,
-      result.details
+      result.description || 'N/A',
+      result.actions || 'N/A',
+      result.details || 'N/A'
     ]);
     
     autoTable(doc, {
-      startY: yPosition,
+      startY: startY,
       head: [['Test Name', 'Status', 'Description', 'Actions Performed', 'Details']],
       body: tableData,
       theme: 'grid',
@@ -101,18 +97,25 @@ export const generateSTDReport = (testResults: TestResult[], metadata: any) => {
         fillColor: [59, 130, 246],
         textColor: [255, 255, 255],
         fontStyle: 'bold',
-        fontSize: 9
+        fontSize: 8,
+        halign: 'center',
+        valign: 'middle'
       },
       styles: { 
-        fontSize: 8,
-        cellPadding: 3
+        fontSize: 7,
+        cellPadding: 2,
+        overflow: 'linebreak',
+        cellWidth: 'wrap',
+        valign: 'top',
+        lineColor: [200, 200, 200],
+        lineWidth: 0.1
       },
       columnStyles: {
-        0: { cellWidth: 50 },
-        1: { cellWidth: 20, halign: 'center' },
-        2: { cellWidth: 60 },
+        0: { cellWidth: 45, fontStyle: 'bold' },
+        1: { cellWidth: 18, halign: 'center', valign: 'middle' },
+        2: { cellWidth: 55 },
         3: { cellWidth: 60 },
-        4: { cellWidth: 70 }
+        4: { cellWidth: 80 }
       },
       didParseCell: function(data) {
         // Color code the status column
@@ -123,12 +126,24 @@ export const generateSTDReport = (testResults: TestResult[], metadata: any) => {
           data.cell.styles.fillColor = color;
           data.cell.styles.textColor = [255, 255, 255];
           data.cell.styles.fontStyle = 'bold';
+          data.cell.styles.fontSize = 9;
         }
       },
-      margin: { left: 14, right: 14 }
+      margin: { left: 14, right: 14 },
+      pageBreak: 'auto',
+      rowPageBreak: 'avoid',
+      tableLineColor: [200, 200, 200],
+      tableLineWidth: 0.1
     });
     
-    yPosition = (doc as any).lastAutoTable.finalY + 10;
+    // Update startY for next category
+    startY = (doc as any).lastAutoTable.finalY + 12;
+    
+    // Add new page if needed for next category
+    if (startY > 180 && index < categories.length - 1) {
+      doc.addPage();
+      startY = 20;
+    }
   });
   
   // Add footer with page numbers
