@@ -97,25 +97,28 @@ export const generateSTDReport = (testResults: TestResult[], metadata: any) => {
         fillColor: [59, 130, 246],
         textColor: [255, 255, 255],
         fontStyle: 'bold',
-        fontSize: 8,
+        fontSize: 9,
         halign: 'center',
-        valign: 'middle'
+        valign: 'middle',
+        minCellHeight: 8
       },
       styles: { 
-        fontSize: 7,
-        cellPadding: 2,
+        fontSize: 8,
+        cellPadding: 3,
         overflow: 'linebreak',
         cellWidth: 'wrap',
         valign: 'top',
         lineColor: [200, 200, 200],
-        lineWidth: 0.1
+        lineWidth: 0.1,
+        minCellHeight: 10,
+        halign: 'left'
       },
       columnStyles: {
-        0: { cellWidth: 45, fontStyle: 'bold' },
-        1: { cellWidth: 18, halign: 'center', valign: 'middle' },
-        2: { cellWidth: 55 },
-        3: { cellWidth: 60 },
-        4: { cellWidth: 80 }
+        0: { cellWidth: 50, fontStyle: 'bold', minCellWidth: 50 },
+        1: { cellWidth: 20, halign: 'center', valign: 'middle', minCellWidth: 20 },
+        2: { cellWidth: 60, minCellWidth: 60 },
+        3: { cellWidth: 65, minCellWidth: 65 },
+        4: { cellWidth: 73, minCellWidth: 73 }
       },
       didParseCell: function(data) {
         // Color code the status column
@@ -130,6 +133,7 @@ export const generateSTDReport = (testResults: TestResult[], metadata: any) => {
         }
       },
       margin: { left: 14, right: 14 },
+      tableWidth: 'auto',
       pageBreak: 'auto',
       rowPageBreak: 'avoid',
       tableLineColor: [200, 200, 200],
