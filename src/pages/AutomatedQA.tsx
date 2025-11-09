@@ -90,6 +90,8 @@ const AutomatedQA = () => {
                 } else if (parsed.summary) {
                   // Final result
                   finalData = parsed;
+                } else if (parsed.error) {
+                  throw new Error(parsed.error);
                 }
               } catch (e) {
                 console.error('Failed to parse SSE data:', e);
@@ -252,6 +254,8 @@ const AutomatedQA = () => {
                 } else if (parsed.summary) {
                   // Final result
                   finalData = parsed;
+                } else if (parsed.error) {
+                  throw new Error(parsed.error);
                 }
               } catch (e) {
                 console.error('Failed to parse SSE data:', e);
