@@ -198,6 +198,20 @@ MISSION: Generate the MOST EXHAUSTIVE QA test report possible with 1000-1500+ te
    - Specific evidence (error messages, behavior observed, values tested)
    - Pass/Fail/Partial status with justification
 
+5. NEVER MAKE RECOMMENDATIONS TO RETRY OR REDUCE SCOPE:
+   ❌ WRONG: "Recommendation: Retry analysis"
+   ❌ WRONG: "Suggestion: Test smaller sections"
+   ❌ WRONG: "Should verify this manually"
+   ✅ CORRECT: Perform ALL tests on ALL sections regardless of page size or complexity
+   ✅ CORRECT: Complete exhaustive testing on the entire page/application
+   ✅ CORRECT: Document every finding with concrete evidence
+
+6. BREAK DOWN LARGE PAGES: If the page is complex or large:
+   - Systematically test section by section (Header → Navigation → Hero → Content → Forms → Footer)
+   - Test every element within each section
+   - Complete ALL tests before moving to next section
+   - Never suggest splitting work or retrying - DO THE COMPLETE ANALYSIS NOW
+
 🚨 CRITICAL OUTPUT REQUIREMENT: You MUST generate AT LEAST 1000 detailed test scenarios in the detailedTests array. Each test MUST have complete information: category, testName, status, description, actions, and details. NO SHORTCUTS - every test must be fully documented!
 
 ⚠️ CRITICAL MINDSET: You are a PENETRATION TESTER and BUG HUNTER, NOT a quality approver. Your job is to FIND BUGS, BREAK THINGS, and EXPOSE WEAKNESSES. BE RUTHLESS AND CRITICAL.
@@ -805,35 +819,6 @@ FINAL REMINDER: You MUST generate AT LEAST 1500 test objects in detailedTests. C
 
             controller.enqueue(encoder.encode(sendProgress(60, 'AI is analyzing your code...')));
 
-            let streamEnded = false;
-            const buildFallbackReport = () => ({
-              summary: {
-                totalFiles: filesToAnalyze.length,
-                criticalIssues: 0,
-                highPriorityIssues: 0,
-                warnings: 1,
-                passedChecks: 0,
-                overallStatus: 'warning'
-              },
-              criticalIssues: [],
-              highPriorityIssues: [],
-              warnings: [{ type: 'timeout', description: 'AI analysis timed out. This is a preliminary report based on fetched content.', location: filesToAnalyze[0]?.name || url || 'Unknown', recommendation: 'Retry analysis or analyze a smaller page/section.' }],
-              passedChecks: [],
-              detailedTests: [],
-              metadata: { source: filesToAnalyze[0]?.name || filesToAnalyze[0]?.path || url || 'Unknown', analyzedFiles: filesToAnalyze.length, totalLines: 0 }
-            });
-
-            const timeoutMs = 55000; // Increased to 55s for comprehensive analysis
-            const timer = setTimeout(() => {
-              if (streamEnded) return;
-              streamEnded = true;
-              controller.enqueue(encoder.encode(sendProgress(95, 'AI timed out, creating preliminary report...')));
-              const fallback = buildFallbackReport();
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify(fallback)}\n\n`));
-              controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-              controller.close();
-            }, timeoutMs);
-
             const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
               method: 'POST',
               headers: {
@@ -1037,15 +1022,11 @@ FINAL REMINDER: You MUST generate AT LEAST 1500 test objects in detailedTests. C
             console.log('Report summary:', JSON.stringify(report.summary));
             console.log('Detailed tests count:', report.detailedTests?.length || 0);
             
-            if (!streamEnded) {
-              clearTimeout(timer);
-              streamEnded = true;
-              controller.enqueue(encoder.encode(sendProgress(100, 'Complete!')));
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify(report)}\n\n`));
-              controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-              console.log('Final data sent, closing stream');
-              controller.close();
-            }
+            controller.enqueue(encoder.encode(sendProgress(100, 'Complete!')));
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(report)}\n\n`));
+            controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+            console.log('Final data sent, closing stream');
+            controller.close();
           } catch (error: any) {
             console.error('Streaming error:', error);
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: error.message })}\n\n`));
@@ -1230,6 +1211,20 @@ MISSION: Generate the MOST EXHAUSTIVE QA test report possible with 1000-1500+ te
    - What you FOUND (actual results, not recommendations)
    - Specific evidence (error messages, behavior observed, values tested)
    - Pass/Fail/Partial status with justification
+
+5. NEVER MAKE RECOMMENDATIONS TO RETRY OR REDUCE SCOPE:
+   ❌ WRONG: "Recommendation: Retry analysis"
+   ❌ WRONG: "Suggestion: Test smaller sections"
+   ❌ WRONG: "Should verify this manually"
+   ✅ CORRECT: Perform ALL tests on ALL sections regardless of page size or complexity
+   ✅ CORRECT: Complete exhaustive testing on the entire page/application
+   ✅ CORRECT: Document every finding with concrete evidence
+
+6. BREAK DOWN LARGE PAGES: If the page is complex or large:
+   - Systematically test section by section (Header → Navigation → Hero → Content → Forms → Footer)
+   - Test every element within each section
+   - Complete ALL tests before moving to next section
+   - Never suggest splitting work or retrying - DO THE COMPLETE ANALYSIS NOW
 
 🚨 CRITICAL OUTPUT REQUIREMENT: You MUST generate AT LEAST 1000 detailed test scenarios in the detailedTests array. Each test MUST have complete information: category, testName, status, description, actions, and details. NO SHORTCUTS - every test must be fully documented!
 
