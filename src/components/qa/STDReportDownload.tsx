@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
-import { FileDown } from "lucide-react";
-import { downloadSTDReport } from "@/utils/pdfGenerator";
+import { FileDown, Languages } from "lucide-react";
+import { downloadSTDReport, downloadHebrewSTDReport } from "@/utils/pdfGenerator";
 import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 interface STDReportDownloadProps {
   report: any;
@@ -9,6 +10,7 @@ interface STDReportDownloadProps {
 
 export const STDReportDownload = ({ report }: STDReportDownloadProps) => {
   const { toast } = useToast();
+  const [isDownloadingHebrew, setIsDownloadingHebrew] = useState(false);
 
   const handleDownload = () => {
     try {
@@ -119,14 +121,138 @@ export const STDReportDownload = ({ report }: STDReportDownloadProps) => {
     }
   };
 
+  const handleDownloadHebrew = async () => {
+    try {
+      setIsDownloadingHebrew(true);
+      console.log('Starting Hebrew PDF generation with report:', report);
+      
+      // Transform report data into format for PDF generator
+      let testResults = report.detailedTests || [];
+      console.log('detailedTests found:', testResults.length);
+      
+      // If detailedTests not available, create comprehensive tests from all available data
+      if (testResults.length === 0) {
+        console.log('No detailedTests, creating from report structure');
+        const allTests = [];
+        
+        // Convert critical issues to test format
+        if (report.criticalIssues && Array.isArray(report.criticalIssues)) {
+          report.criticalIssues.forEach((issue: any) => {
+            allTests.push({
+              category: 'Security',
+              testName: issue.type || 'Critical Issue',
+              status: 'fail',
+              description: issue.description || 'Critical issue found',
+              actions: '1. Analyze the issue\n2. Review the affected code\n3. Implement security fix',
+              details: `Location: ${issue.location || 'N/A'}\nImpact: ${issue.impact || 'High'}\nRecommendation: ${issue.recommendation || 'Fix immediately'}`
+            });
+          });
+        }
+        
+        // Convert high priority issues to test format
+        if (report.highPriorityIssues && Array.isArray(report.highPriorityIssues)) {
+          report.highPriorityIssues.forEach((issue: any) => {
+            allTests.push({
+              category: 'Functionality',
+              testName: issue.type || 'High Priority Issue',
+              status: 'fail',
+              description: issue.description || 'High priority issue found',
+              actions: '1. Review the issue\n2. Check affected functionality\n3. Implement fix',
+              details: `Location: ${issue.location || 'N/A'}\nRecommendation: ${issue.recommendation || 'Address soon'}`
+            });
+          });
+        }
+        
+        // Convert warnings to test format
+        if (report.warnings && Array.isArray(report.warnings)) {
+          report.warnings.forEach((issue: any) => {
+            allTests.push({
+              category: 'Code Quality',
+              testName: issue.type || 'Warning',
+              status: 'partial',
+              description: issue.description || 'Warning found',
+              actions: '1. Review the warning\n2. Assess impact\n3. Consider improvements',
+              details: `Location: ${issue.location || 'N/A'}\nRecommendation: ${issue.recommendation || 'Consider fixing'}`
+            });
+          });
+        }
+        
+        // Convert passed checks to test format
+        if (report.passedChecks && Array.isArray(report.passedChecks)) {
+          report.passedChecks.forEach((check: any) => {
+            allTests.push({
+              category: 'Sanity',
+              testName: check.type || 'Passed Check',
+              status: 'pass',
+              description: check.description || 'Check passed',
+              actions: '1. Verified functionality\n2. Confirmed expected behavior',
+              details: `Location: ${check.location || 'N/A'}\nStatus: Working as expected`
+            });
+          });
+        }
+        
+        testResults = allTests;
+        console.log('Created tests from report structure:', testResults.length);
+      }
+      
+      // If still no tests, show error
+      if (testResults.length === 0) {
+        console.error('No test data available in report');
+        toast({
+          title: "No Test Data",
+          description: "The report doesn't contain any test data to generate PDF",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const metadata = {
+        source: report.metadata?.source || report.summary?.source || 'Unknown',
+        timestamp: report.summary?.timestamp || new Date().toISOString(),
+        totalTests: testResults.length,
+        passed: testResults.filter((t: any) => t.status === 'pass').length,
+        failed: testResults.filter((t: any) => t.status === 'fail').length
+      };
+
+      console.log('Generating Hebrew PDF with', testResults.length, 'tests');
+      await downloadHebrewSTDReport(testResults, metadata);
+      
+      toast({
+        title: "Hebrew Report Downloaded",
+        description: `Hebrew STD report with ${testResults.length} tests has been generated`,
+      });
+    } catch (error) {
+      console.error('Error generating Hebrew PDF:', error);
+      toast({
+        title: "Download Failed",
+        description: "Failed to generate Hebrew PDF report. Check console for details.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloadingHebrew(false);
+    }
+  };
+
   return (
-    <Button 
-      onClick={handleDownload}
-      className="gap-2"
-      size="lg"
-    >
-      <FileDown className="w-4 h-4" />
-      Download STD Report (PDF)
-    </Button>
+    <div className="flex gap-2">
+      <Button 
+        onClick={handleDownload}
+        className="gap-2"
+        size="lg"
+      >
+        <FileDown className="w-4 h-4" />
+        Download STD Report (PDF)
+      </Button>
+      <Button 
+        onClick={handleDownloadHebrew}
+        className="gap-2"
+        size="lg"
+        variant="outline"
+        disabled={isDownloadingHebrew}
+      >
+        <Languages className="w-4 h-4" />
+        {isDownloadingHebrew ? 'Generating...' : 'Download Hebrew PDF'}
+      </Button>
+    </div>
   );
 };
