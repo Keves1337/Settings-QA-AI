@@ -65,9 +65,83 @@ export const generateSTDReport = (testResults: TestResult[], metadata: any) => {
   doc.text(`Coverage: ${testResults.length} test scenarios`, 100, 58);
   doc.text(`Status: ${failCount === 0 ? 'READY FOR DEPLOYMENT' : 'REQUIRES ATTENTION'}`, 180, 58);
   
+  // Add Test Plan Overview Page
+  doc.addPage();
+  doc.setFontSize(18);
+  doc.setTextColor(0, 0, 0);
+  doc.text('TEST PLAN OVERVIEW', 148, 15, { align: 'center' });
+  
+  doc.setFontSize(11);
+  doc.text('This section describes the test strategy and objectives before execution.', 148, 25, { align: 'center' });
+  
   // Group results by category
   const categories = Array.from(new Set(testResults.map(r => r.category)));
-  let startY = 70;
+  
+  // Test Plan by Category
+  let planY = 35;
+  doc.setFontSize(12);
+  doc.setTextColor(59, 130, 246);
+  doc.text('Test Scope by Category:', 14, planY);
+  planY += 8;
+  
+  categories.forEach((category, idx) => {
+    const categoryResults = testResults.filter(r => r.category === category);
+    
+    // Check if we need a new page
+    if (planY > 180) {
+      doc.addPage();
+      planY = 20;
+    }
+    
+    // Category header
+    doc.setFontSize(11);
+    doc.setTextColor(0, 0, 0);
+    doc.setFillColor(230, 230, 230);
+    doc.rect(14, planY - 4, 270, 7, 'F');
+    doc.text(`${idx + 1}. ${category.toUpperCase()} (${categoryResults.length} tests)`, 16, planY);
+    planY += 8;
+    
+    // List test objectives (first 5 tests per category to keep it manageable)
+    doc.setFontSize(9);
+    doc.setTextColor(60, 60, 60);
+    const testsToShow = categoryResults.slice(0, 5);
+    
+    testsToShow.forEach((test, testIdx) => {
+      if (planY > 185) {
+        doc.addPage();
+        planY = 20;
+      }
+      
+      const testPlanText = `   ${idx + 1}.${testIdx + 1} Test Objective: ${test.testName}`;
+      const splitText = doc.splitTextToSize(testPlanText, 260);
+      doc.text(splitText, 20, planY);
+      planY += splitText.length * 4;
+      
+      const descText = `       Goal: ${test.description}`;
+      const splitDesc = doc.splitTextToSize(descText, 255);
+      doc.text(splitDesc, 20, planY);
+      planY += splitDesc.length * 4 + 2;
+    });
+    
+    if (categoryResults.length > 5) {
+      doc.setTextColor(100, 100, 100);
+      doc.text(`   ... and ${categoryResults.length - 5} more tests in this category`, 20, planY);
+      planY += 6;
+    }
+    
+    planY += 4;
+  });
+  
+  // Add Expected vs Actual Results section header
+  doc.addPage();
+  doc.setFontSize(18);
+  doc.setTextColor(0, 0, 0);
+  doc.text('TEST EXECUTION RESULTS', 148, 15, { align: 'center' });
+  
+  doc.setFontSize(11);
+  doc.text('This section shows what was expected vs what actually happened during testing.', 148, 25, { align: 'center' });
+  
+  let startY = 35;
   
   categories.forEach((category, index) => {
     const categoryResults = testResults.filter(r => r.category === category);
@@ -91,7 +165,7 @@ export const generateSTDReport = (testResults: TestResult[], metadata: any) => {
     
     autoTable(doc, {
       startY: startY,
-      head: [['Test Name', 'Status', 'Description', 'Actions Performed', 'Details']],
+      head: [['Test Name', 'Status', 'Description', 'Actions Performed', 'Expected vs Actual']],
       body: tableData,
       theme: 'grid',
       headStyles: { 
