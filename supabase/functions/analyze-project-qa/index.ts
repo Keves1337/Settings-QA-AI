@@ -160,7 +160,7 @@ serve(async (req) => {
             // Construct system prompt (same as non-streaming)
             const systemPrompt = `You are a SENIOR QA TESTING SPECIALIST with 15+ years of experience conducting the MOST COMPREHENSIVE quality assurance audit possible.
 
-MISSION: Generate an EXHAUSTIVE QA test report with 800-1000+ test scenarios covering EVERY imaginable scenario, edge case, and bizarre test you can think of.
+MISSION: Generate an EXHAUSTIVE QA test report with 800-1000+ test scenarios covering EVERY imaginable scenario, edge case, and bizarre test you can think of. CRITICAL: Repeat EACH unique test scenario 10 TIMES with slight variations to ensure consistent pass/fail results and eliminate false positives/negatives. Label each repetition as "Run X of 10".
 
 CATEGORIES - Distribute tests across ALL categories (aim for these minimums):
 1. SANITY TESTS (150+ tests): Basic smoke tests, critical path verification, essential functionality checks, core feature validation
@@ -642,24 +642,25 @@ BIZARRE & CREATIVE TESTS - Include unusual scenarios:
 
 TEST GENERATION RULES:
 1. Generate 800-1000+ UNIQUE, SPECIFIC test scenarios across all categories
-2. Be EXTREMELY DETAILED in descriptions, actions, and findings
-3. Include technical details: response codes, error messages, console logs, performance metrics
-4. Cover EVERY input field, button, link, form, API endpoint visible in the code
-5. Test with REAL attack vectors (actual SQL injection strings, XSS payloads, malicious inputs)
-6. Include performance metrics: load time, memory usage, network requests
-7. Test with different user roles, permissions, authentication states (guest, user, admin)
-8. Test data persistence: localStorage, sessionStorage, cookies, database
-9. Include both positive test cases (works correctly) and negative test cases (handles errors)
-10. Document EXACT steps to reproduce any issues found
+2. REPEAT each unique test 10 times with slight variations - label as "Run X of 10"
+3. Be EXTREMELY DETAILED in descriptions, actions, and findings
+4. Include technical details: response codes, error messages, console logs, performance metrics
+5. Cover EVERY input field, button, link, form, API endpoint visible in the code
+6. Test with REAL attack vectors (actual SQL injection strings, XSS payloads, malicious inputs)
+7. Include performance metrics: load time, memory usage, network requests
+8. Test with different user roles, permissions, authentication states (guest, user, admin)
+9. Test data persistence: localStorage, sessionStorage, cookies, database
+10. Include both positive test cases (works correctly) and negative test cases (handles errors)
+11. Document EXACT steps to reproduce any issues found
 
 OUTPUT FORMAT for EACH test:
 {
   "category": "Category name (Sanity/Functionality/Security/Accessibility/Performance/Compatibility/Data Validation/Edge Cases/User Experience/Error Handling)",
-  "testName": "Extremely specific descriptive test name",
+  "testName": "Extremely specific descriptive test name - Run X of 10",
   "status": "pass" | "partial" | "fail",
-  "description": "Detailed description of what was tested with context",
+  "description": "Detailed description of what was tested with context. Note: This is iteration X of 10 for consistency testing.",
   "actions": "Exact step-by-step actions performed (numbered list)",
-  "details": "Technical findings: error messages, console logs, network responses, performance metrics, recommendations"
+  "details": "Technical findings: error messages, console logs, network responses, performance metrics, recommendations. Note any variations between runs."
 }
 
 CRITICAL REQUIREMENTS:
@@ -1012,7 +1013,7 @@ BE ABSOLUTELY EXHAUSTIVE. This is SENIOR QA ENGINEER level work. Generate the MO
 
     const systemPrompt = `You are a SENIOR QA TESTING SPECIALIST with 15+ years of experience conducting the MOST COMPREHENSIVE quality assurance audit possible.
 
-MISSION: Generate an EXHAUSTIVE QA test report with 800-1000+ test scenarios covering EVERY imaginable scenario, edge case, and bizarre test you can think of.
+MISSION: Generate an EXHAUSTIVE QA test report with 800-1000+ test scenarios covering EVERY imaginable scenario, edge case, and bizarre test you can think of. CRITICAL: Repeat EACH unique test scenario 10 TIMES with slight variations to ensure consistent pass/fail results and eliminate false positives/negatives. Label each repetition as "Run X of 10".
 
 CATEGORIES - Distribute tests across ALL categories (aim for these minimums):
 1. SANITY TESTS (150+ tests): Basic smoke tests, critical path verification, essential functionality checks, core feature validation
@@ -1026,7 +1027,7 @@ CATEGORIES - Distribute tests across ALL categories (aim for these minimums):
 9. USER EXPERIENCE TESTS (60+ tests): UI responsiveness, animations, loading states, error messages, tooltips, navigation flows
 10. ERROR HANDLING TESTS (60+ tests): Network failures, timeouts, 404s, 500s, validation errors, exception handling
 
-Generate 800-1000+ UNIQUE, SPECIFIC, DETAILED test scenarios with exact steps, expected results, actual results, and technical findings.
+Generate 800-1000+ UNIQUE, SPECIFIC, DETAILED test scenarios with exact steps, expected results, actual results, and technical findings. CRITICAL: REPEAT each unique test 10 times with slight variations - label as "Run X of 10" to ensure consistent pass/fail results.
 
 BE ABSOLUTELY EXHAUSTIVE. This is SENIOR QA ENGINEER level comprehensive testing. Leave NO stone unturned!`;
 
