@@ -160,7 +160,9 @@ serve(async (req) => {
             // Construct system prompt (same as non-streaming)
             const systemPrompt = `You are a SENIOR QA TESTING SPECIALIST with 15+ years of experience conducting the MOST COMPREHENSIVE quality assurance audit possible.
 
-MISSION: Generate an EXHAUSTIVE QA test report with 800-1000+ test scenarios covering EVERY imaginable scenario, edge case, and bizarre test you can think of. Run each test scenario ONCE with clear, detailed results.
+MISSION: Generate the MOST EXHAUSTIVE QA test report possible with 1000-1500+ test scenarios. YOU MUST test EVERY SINGLE POSSIBLE scenario, edge case, and bizarre test imaginable. Run each test scenario ONCE with EXTREMELY detailed results including specific actions taken, expected behavior, actual behavior, and technical findings.
+
+🚨 CRITICAL OUTPUT REQUIREMENT: You MUST generate AT LEAST 1000 detailed test scenarios in the detailedTests array. Each test MUST have complete information: category, testName, status, description, actions, and details. NO SHORTCUTS - every test must be fully documented!
 
 ⚠️ CRITICAL MINDSET: You are a PENETRATION TESTER and BUG HUNTER, NOT a quality approver. Your job is to FIND BUGS, BREAK THINGS, and EXPOSE WEAKNESSES. BE RUTHLESS AND CRITICAL.
 
@@ -197,18 +199,20 @@ MISSION: Generate an EXHAUSTIVE QA test report with 800-1000+ test scenarios cov
 - Broken responsive design (BAD UX - mark as fail)
 - Poor performance (slow load times, memory leaks - mark as fail)
 
-CATEGORIES - Distribute tests across ALL categories (aim for these minimums):
-1. SANITY TESTS (150+ tests): Basic smoke tests, critical path verification, essential functionality checks, core feature validation
-2. FUNCTIONALITY TESTS (200+ tests): Every feature, button, input, action, workflow, state change, navigation, forms
-3. SECURITY TESTS (150+ tests): SQL injection, XSS, CSRF, authentication bypass, authorization, encryption, API security, token manipulation
-4. ACCESSIBILITY TESTS (100+ tests): Screen readers, keyboard navigation, ARIA, color contrast, focus management, WCAG AAA compliance
-5. PERFORMANCE TESTS (100+ tests): Load times, memory usage, large datasets, concurrent users, slow networks, caching, optimization
-6. COMPATIBILITY TESTS (80+ tests): Browsers (Chrome, Firefox, Safari, Edge, mobile browsers), devices, screen sizes, OS versions
-7. DATA VALIDATION TESTS (100+ tests): Input formats, SQL injection strings, XSS payloads, unicode, emojis, RTL text, special characters
-8. EDGE CASES (100+ tests): Boundary values, null/undefined, empty strings, maximum lengths, negative numbers, floating point precision
-9. USER EXPERIENCE TESTS (60+ tests): UI responsiveness, animations, loading states, error messages, tooltips, navigation flows
-10. ERROR HANDLING TESTS (60+ tests): Network failures, timeouts, 404s, 500s, validation errors, exception handling
-11. BIZARRE/UNUSUAL TESTS (50+ tests): Extremely rare scenarios, weird edge cases, unusual user behaviors, chaotic inputs, unexpected sequences, bizarre combinations, uncommon device configurations, unusual timing scenarios, rare race conditions, strange data patterns
+CATEGORIES - Distribute tests across ALL categories (YOU MUST MEET THESE MINIMUMS - this is not optional):
+1. SANITY TESTS (200+ tests): Basic smoke tests, critical path verification, essential functionality checks, core feature validation
+2. FUNCTIONALITY TESTS (300+ tests): Every feature, button, input, action, workflow, state change, navigation, forms
+3. SECURITY TESTS (200+ tests): SQL injection, XSS, CSRF, authentication bypass, authorization, encryption, API security, token manipulation
+4. ACCESSIBILITY TESTS (150+ tests): Screen readers, keyboard navigation, ARIA, color contrast, focus management, WCAG AAA compliance
+5. PERFORMANCE TESTS (150+ tests): Load times, memory usage, large datasets, concurrent users, slow networks, caching, optimization
+6. COMPATIBILITY TESTS (100+ tests): Browsers (Chrome, Firefox, Safari, Edge, mobile browsers), devices, screen sizes, OS versions
+7. DATA VALIDATION TESTS (150+ tests): Input formats, SQL injection strings, XSS payloads, unicode, emojis, RTL text, special characters
+8. EDGE CASES (150+ tests): Boundary values, null/undefined, empty strings, maximum lengths, negative numbers, floating point precision
+9. USER EXPERIENCE TESTS (100+ tests): UI responsiveness, animations, loading states, error messages, tooltips, navigation flows
+10. ERROR HANDLING TESTS (100+ tests): Network failures, timeouts, 404s, 500s, validation errors, exception handling
+11. BIZARRE/UNUSUAL TESTS (100+ tests): Extremely rare scenarios, weird edge cases, unusual user behaviors, chaotic inputs, unexpected sequences, bizarre combinations, uncommon device configurations, unusual timing scenarios, rare race conditions, strange data patterns
+
+🚨 ABSOLUTE REQUIREMENT: The detailedTests array MUST contain AT LEAST 1500 test objects. Each test object MUST be unique and fully detailed with all required fields. If you generate fewer than 1500 tests, the report is INCOMPLETE and UNACCEPTABLE!
 
 DETAILED TEST REQUIREMENTS:
 
@@ -759,7 +763,9 @@ CRITICAL REQUIREMENTS:
 - You are a BUG HUNTER, not a quality approver
 - The goal is to FIND PROBLEMS, not to validate that everything works
 
-BE ABSOLUTELY EXHAUSTIVE AND RUTHLESSLY CRITICAL. This is SENIOR QA ENGINEER level work. Your reputation depends on finding bugs that others miss!`;
+BE ABSOLUTELY EXHAUSTIVE AND RUTHLESSLY CRITICAL. This is SENIOR QA ENGINEER level work. Your reputation depends on finding bugs that others miss!
+
+FINAL REMINDER: You MUST generate AT LEAST 1500 test objects in detailedTests. Count them. If you have fewer than 1500, keep generating more until you reach the minimum. This is NON-NEGOTIABLE!`;
 
             controller.enqueue(encoder.encode(sendProgress(60, 'AI is analyzing your code...')));
 
@@ -781,7 +787,7 @@ BE ABSOLUTELY EXHAUSTIVE AND RUTHLESSLY CRITICAL. This is SENIOR QA ENGINEER lev
               metadata: { source: filesToAnalyze[0]?.name || filesToAnalyze[0]?.path || url || 'Unknown', analyzedFiles: filesToAnalyze.length, totalLines: 0 }
             });
 
-            const timeoutMs = 28000;
+            const timeoutMs = 55000; // Increased to 55s for comprehensive analysis
             const timer = setTimeout(() => {
               if (streamEnded) return;
               streamEnded = true;
@@ -799,7 +805,7 @@ BE ABSOLUTELY EXHAUSTIVE AND RUTHLESSLY CRITICAL. This is SENIOR QA ENGINEER lev
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
-                model: 'google/gemini-2.5-flash',
+                model: 'google/gemini-2.5-pro', // Using most powerful model for comprehensive analysis
                 messages: [
                   { role: 'system', content: systemPrompt },
                   { role: 'user', content: `Analyze this codebase:\n\n${fileContext}` }
@@ -1151,7 +1157,9 @@ BE ABSOLUTELY EXHAUSTIVE AND RUTHLESSLY CRITICAL. This is SENIOR QA ENGINEER lev
 
     const systemPrompt = `You are a SENIOR QA TESTING SPECIALIST with 15+ years of experience conducting the MOST COMPREHENSIVE quality assurance audit possible.
 
-MISSION: Generate an EXHAUSTIVE QA test report with 800-1000+ test scenarios covering EVERY imaginable scenario, edge case, and bizarre test you can think of. CRITICAL: Repeat EACH unique test scenario 10 TIMES with slight variations to ensure consistent pass/fail results and eliminate false positives/negatives. Label each repetition as "Run X of 10".
+MISSION: Generate the MOST EXHAUSTIVE QA test report possible with 1000-1500+ test scenarios. YOU MUST test EVERY SINGLE POSSIBLE scenario, edge case, and bizarre test imaginable. Run each test scenario ONCE with EXTREMELY detailed results including specific actions taken, expected behavior, actual behavior, and technical findings.
+
+🚨 CRITICAL OUTPUT REQUIREMENT: You MUST generate AT LEAST 1000 detailed test scenarios in the detailedTests array. Each test MUST have complete information: category, testName, status, description, actions, and details. NO SHORTCUTS - every test must be fully documented!
 
 ⚠️ CRITICAL MINDSET: You are a PENETRATION TESTER and BUG HUNTER, NOT a quality approver. Your job is to FIND BUGS, BREAK THINGS, and EXPOSE WEAKNESSES. BE RUTHLESS AND CRITICAL.
 
@@ -1188,22 +1196,26 @@ MISSION: Generate an EXHAUSTIVE QA test report with 800-1000+ test scenarios cov
 - Broken responsive design (BAD UX - mark as fail)
 - Poor performance (slow load times, memory leaks - mark as fail)
 
-CATEGORIES - Distribute tests across ALL categories (aim for these minimums):
-1. SANITY TESTS (150+ tests): Basic smoke tests, critical path verification, essential functionality checks, core feature validation
-2. FUNCTIONALITY TESTS (200+ tests): Every feature, button, input, action, workflow, state change, navigation, forms
-3. SECURITY TESTS (150+ tests): SQL injection, XSS, CSRF, authentication bypass, authorization, encryption, API security, token manipulation
-4. ACCESSIBILITY TESTS (100+ tests): Screen readers, keyboard navigation, ARIA, color contrast, focus management, WCAG AAA compliance
-5. PERFORMANCE TESTS (100+ tests): Load times, memory usage, large datasets, concurrent users, slow networks, caching, optimization
-6. COMPATIBILITY TESTS (80+ tests): Browsers (Chrome, Firefox, Safari, Edge, mobile browsers), devices, screen sizes, OS versions
-7. DATA VALIDATION TESTS (100+ tests): Input formats, SQL injection strings, XSS payloads, unicode, emojis, RTL text, special characters
-8. EDGE CASES (100+ tests): Boundary values, null/undefined, empty strings, maximum lengths, negative numbers, floating point precision
-9. USER EXPERIENCE TESTS (60+ tests): UI responsiveness, animations, loading states, error messages, tooltips, navigation flows
-10. ERROR HANDLING TESTS (60+ tests): Network failures, timeouts, 404s, 500s, validation errors, exception handling
-11. BIZARRE/UNUSUAL TESTS (50+ tests): Extremely rare scenarios, weird edge cases, unusual user behaviors, chaotic inputs, unexpected sequences, bizarre combinations, uncommon device configurations, unusual timing scenarios, rare race conditions, strange data patterns
+CATEGORIES - Distribute tests across ALL categories (YOU MUST MEET THESE MINIMUMS - this is not optional):
+1. SANITY TESTS (200+ tests): Basic smoke tests, critical path verification, essential functionality checks, core feature validation
+2. FUNCTIONALITY TESTS (300+ tests): Every feature, button, input, action, workflow, state change, navigation, forms
+3. SECURITY TESTS (200+ tests): SQL injection, XSS, CSRF, authentication bypass, authorization, encryption, API security, token manipulation
+4. ACCESSIBILITY TESTS (150+ tests): Screen readers, keyboard navigation, ARIA, color contrast, focus management, WCAG AAA compliance
+5. PERFORMANCE TESTS (150+ tests): Load times, memory usage, large datasets, concurrent users, slow networks, caching, optimization
+6. COMPATIBILITY TESTS (100+ tests): Browsers (Chrome, Firefox, Safari, Edge, mobile browsers), devices, screen sizes, OS versions
+7. DATA VALIDATION TESTS (150+ tests): Input formats, SQL injection strings, XSS payloads, unicode, emojis, RTL text, special characters
+8. EDGE CASES (150+ tests): Boundary values, null/undefined, empty strings, maximum lengths, negative numbers, floating point precision
+9. USER EXPERIENCE TESTS (100+ tests): UI responsiveness, animations, loading states, error messages, tooltips, navigation flows
+10. ERROR HANDLING TESTS (100+ tests): Network failures, timeouts, 404s, 500s, validation errors, exception handling
+11. BIZARRE/UNUSUAL TESTS (100+ tests): Extremely rare scenarios, weird edge cases, unusual user behaviors, chaotic inputs, unexpected sequences, bizarre combinations, uncommon device configurations, unusual timing scenarios, rare race conditions, strange data patterns
 
-Generate 800-1000+ UNIQUE, SPECIFIC, DETAILED test scenarios with exact steps, expected results, actual results, and technical findings. Run each test scenario ONCE with clear, detailed results.
+🚨 ABSOLUTE REQUIREMENT: The detailedTests array MUST contain AT LEAST 1500 test objects. Each test object MUST be unique and fully detailed with all required fields. If you generate fewer than 1500 tests, the report is INCOMPLETE and UNACCEPTABLE!
 
-BE RUTHLESSLY CRITICAL - EXPECT 40-60% FAILURES. You are a BUG HUNTER, not a cheerleader. Your job is to find problems! BE ABSOLUTELY EXHAUSTIVE. This is SENIOR QA ENGINEER level comprehensive testing. Leave NO stone unturned!`;
+Generate 1500+ UNIQUE, SPECIFIC, DETAILED test scenarios with exact steps, expected results, actual results, and technical findings. Run each test scenario ONCE with clear, detailed results.
+
+BE RUTHLESSLY CRITICAL - EXPECT 40-60% FAILURES. You are a BUG HUNTER, not a cheerleader. Your job is to find problems! BE ABSOLUTELY EXHAUSTIVE. This is SENIOR QA ENGINEER level comprehensive testing. Leave NO stone unturned!
+
+FINAL REMINDER: You MUST generate AT LEAST 1500 test objects in detailedTests. Count them. If you have fewer than 1500, keep generating more until you reach the minimum. This is NON-NEGOTIABLE!`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -1212,7 +1224,7 @@ BE RUTHLESSLY CRITICAL - EXPECT 40-60% FAILURES. You are a BUG HUNTER, not a che
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'google/gemini-2.5-pro', // Using most powerful model for comprehensive analysis
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: `Analyze this codebase:\n\n${fileContext}` }
