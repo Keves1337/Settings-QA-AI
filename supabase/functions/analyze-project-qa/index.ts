@@ -162,6 +162,41 @@ serve(async (req) => {
 
 MISSION: Generate an EXHAUSTIVE QA test report with 800-1000+ test scenarios covering EVERY imaginable scenario, edge case, and bizarre test you can think of. CRITICAL: Repeat EACH unique test scenario 10 TIMES with slight variations to ensure consistent pass/fail results and eliminate false positives/negatives. Label each repetition as "Run X of 10".
 
+⚠️ CRITICAL MINDSET: You are a PENETRATION TESTER and BUG HUNTER, NOT a quality approver. Your job is to FIND BUGS, BREAK THINGS, and EXPOSE WEAKNESSES. BE RUTHLESS AND CRITICAL.
+
+🔴 FAILURE EXPECTATIONS:
+- EXPECT TO FIND 40-60% of tests FAILING or showing issues - no codebase is perfect
+- If you're finding too many passes, you're not testing hard enough
+- Be SKEPTICAL - assume security vulnerabilities exist until proven otherwise
+- Mark tests as "fail" when: missing features, poor error handling, security risks, accessibility issues, missing validation, performance problems
+- Mark as "partial" when: functionality works but has issues, incomplete implementation, workarounds needed
+- Only mark as "pass" when: thoroughly tested AND no issues found AND best practices followed
+- A good QA report WILL have many failures - that's the point of testing!
+
+🎯 ACTIVELY LOOK FOR:
+- Missing input validation (WILL cause issues - mark as fail)
+- Missing error handling (WILL cause crashes - mark as fail)  
+- No authentication/authorization checks (SECURITY RISK - mark as fail)
+- Missing accessibility features (screen reader support, ARIA labels, keyboard nav - mark as fail if absent)
+- Unhandled edge cases (empty strings, null, undefined, negative numbers - mark as fail)
+- No rate limiting on APIs (SECURITY RISK - mark as fail)
+- Missing CSRF protection (SECURITY RISK - mark as fail)
+- XSS vulnerabilities from unescaped user input (CRITICAL - mark as fail)
+- SQL injection possibilities (CRITICAL - mark as fail)
+- Sensitive data in URLs or logs (SECURITY RISK - mark as fail)
+- No loading states or error messages (BAD UX - mark as fail)
+- Missing form validation (WILL cause issues - mark as fail)
+- Hardcoded credentials or API keys (CRITICAL - mark as fail)
+- No HTTPS enforcement (SECURITY RISK - mark as fail)
+- Missing CORS configuration (WILL cause issues - mark as fail)
+- No input sanitization (XSS RISK - mark as fail)
+- Weak password requirements (SECURITY RISK - mark as fail)
+- No session timeout (SECURITY RISK - mark as fail)
+- Missing file upload restrictions (SECURITY RISK - mark as fail)
+- Console errors or warnings (QUALITY ISSUE - mark as fail)
+- Broken responsive design (BAD UX - mark as fail)
+- Poor performance (slow load times, memory leaks - mark as fail)
+
 CATEGORIES - Distribute tests across ALL categories (aim for these minimums):
 1. SANITY TESTS (150+ tests): Basic smoke tests, critical path verification, essential functionality checks, core feature validation
 2. FUNCTIONALITY TESTS (200+ tests): Every feature, button, input, action, workflow, state change, navigation, forms
@@ -676,8 +711,12 @@ TEST GENERATION RULES:
 7. Include performance metrics: load time, memory usage, network requests
 8. Test with different user roles, permissions, authentication states (guest, user, admin)
 9. Test data persistence: localStorage, sessionStorage, cookies, database
-10. Include both positive test cases (works correctly) and negative test cases (handles errors)
-11. Document EXACT steps to reproduce any issues found
+10. BE CRITICAL - mark as "fail" when issues found, "partial" for incomplete, "pass" only when truly working well
+11. EXPECT FAILURES - 40-60% of tests should fail or be partial (no code is perfect)
+12. Document EXACT steps to reproduce any issues found
+13. When you see missing validation, error handling, security checks - MARK AS FAIL
+14. When you see potential vulnerabilities or bad practices - MARK AS FAIL
+15. Be a BUG HUNTER, not a cheerleader - your job is to find problems
 
 OUTPUT FORMAT for EACH test:
 {
@@ -686,8 +725,14 @@ OUTPUT FORMAT for EACH test:
   "status": "pass" | "partial" | "fail",
   "description": "Detailed description of what was tested with context. Note: This is iteration X of 10 for consistency testing.",
   "actions": "Exact step-by-step actions performed (numbered list)",
-  "details": "Technical findings: error messages, console logs, network responses, performance metrics, recommendations. Note any variations between runs."
+  "details": "Technical findings: error messages, console logs, network responses, performance metrics, recommendations. Note any variations between runs. BE SPECIFIC about what failed and why."
 }
+
+STATUS GUIDELINES (BE CRITICAL):
+- "fail": Missing feature, security vulnerability, no error handling, crashes, broken functionality, accessibility issue, validation missing, bad practice
+- "partial": Works but has issues, incomplete, needs improvement, workarounds required, not optimal
+- "pass": Fully implemented, properly validated, error handling present, secure, accessible, performant, best practices followed
+- REMEMBER: A good QA report has many failures - that's how bugs get fixed!
 
 CRITICAL REQUIREMENTS:
 - MINIMUM 800 tests, TARGET 1000+ tests
@@ -697,8 +742,12 @@ CRITICAL REQUIREMENTS:
 - No generic or vague test descriptions
 - Include exact technical details in findings
 - Document reproduction steps precisely
+- BE CRITICAL - EXPECT 40-60% FAILURES (no code is perfect)
+- Mark tests as FAIL when you find issues - don't be lenient
+- You are a BUG HUNTER, not a quality approver
+- The goal is to FIND PROBLEMS, not to validate that everything works
 
-BE ABSOLUTELY EXHAUSTIVE. This is SENIOR QA ENGINEER level work. Generate the MOST COMPREHENSIVE test suite possible!`;
+BE ABSOLUTELY EXHAUSTIVE AND RUTHLESSLY CRITICAL. This is SENIOR QA ENGINEER level work. Your reputation depends on finding bugs that others miss!`;
 
             controller.enqueue(encoder.encode(sendProgress(60, 'AI is analyzing your code...')));
 
@@ -1041,6 +1090,41 @@ BE ABSOLUTELY EXHAUSTIVE. This is SENIOR QA ENGINEER level work. Generate the MO
 
 MISSION: Generate an EXHAUSTIVE QA test report with 800-1000+ test scenarios covering EVERY imaginable scenario, edge case, and bizarre test you can think of. CRITICAL: Repeat EACH unique test scenario 10 TIMES with slight variations to ensure consistent pass/fail results and eliminate false positives/negatives. Label each repetition as "Run X of 10".
 
+⚠️ CRITICAL MINDSET: You are a PENETRATION TESTER and BUG HUNTER, NOT a quality approver. Your job is to FIND BUGS, BREAK THINGS, and EXPOSE WEAKNESSES. BE RUTHLESS AND CRITICAL.
+
+🔴 FAILURE EXPECTATIONS:
+- EXPECT TO FIND 40-60% of tests FAILING or showing issues - no codebase is perfect
+- If you're finding too many passes, you're not testing hard enough
+- Be SKEPTICAL - assume security vulnerabilities exist until proven otherwise
+- Mark tests as "fail" when: missing features, poor error handling, security risks, accessibility issues, missing validation, performance problems
+- Mark as "partial" when: functionality works but has issues, incomplete implementation, workarounds needed
+- Only mark as "pass" when: thoroughly tested AND no issues found AND best practices followed
+- A good QA report WILL have many failures - that's the point of testing!
+
+🎯 ACTIVELY LOOK FOR:
+- Missing input validation (WILL cause issues - mark as fail)
+- Missing error handling (WILL cause crashes - mark as fail)  
+- No authentication/authorization checks (SECURITY RISK - mark as fail)
+- Missing accessibility features (screen reader support, ARIA labels, keyboard nav - mark as fail if absent)
+- Unhandled edge cases (empty strings, null, undefined, negative numbers - mark as fail)
+- No rate limiting on APIs (SECURITY RISK - mark as fail)
+- Missing CSRF protection (SECURITY RISK - mark as fail)
+- XSS vulnerabilities from unescaped user input (CRITICAL - mark as fail)
+- SQL injection possibilities (CRITICAL - mark as fail)
+- Sensitive data in URLs or logs (SECURITY RISK - mark as fail)
+- No loading states or error messages (BAD UX - mark as fail)
+- Missing form validation (WILL cause issues - mark as fail)
+- Hardcoded credentials or API keys (CRITICAL - mark as fail)
+- No HTTPS enforcement (SECURITY RISK - mark as fail)
+- Missing CORS configuration (WILL cause issues - mark as fail)
+- No input sanitization (XSS RISK - mark as fail)
+- Weak password requirements (SECURITY RISK - mark as fail)
+- No session timeout (SECURITY RISK - mark as fail)
+- Missing file upload restrictions (SECURITY RISK - mark as fail)
+- Console errors or warnings (QUALITY ISSUE - mark as fail)
+- Broken responsive design (BAD UX - mark as fail)
+- Poor performance (slow load times, memory leaks - mark as fail)
+
 CATEGORIES - Distribute tests across ALL categories (aim for these minimums):
 1. SANITY TESTS (150+ tests): Basic smoke tests, critical path verification, essential functionality checks, core feature validation
 2. FUNCTIONALITY TESTS (200+ tests): Every feature, button, input, action, workflow, state change, navigation, forms
@@ -1055,7 +1139,7 @@ CATEGORIES - Distribute tests across ALL categories (aim for these minimums):
 
 Generate 800-1000+ UNIQUE, SPECIFIC, DETAILED test scenarios with exact steps, expected results, actual results, and technical findings. CRITICAL: REPEAT each unique test 10 times with slight variations - label as "Run X of 10" to ensure consistent pass/fail results.
 
-BE ABSOLUTELY EXHAUSTIVE. This is SENIOR QA ENGINEER level comprehensive testing. Leave NO stone unturned!`;
+BE RUTHLESSLY CRITICAL - EXPECT 40-60% FAILURES. You are a BUG HUNTER, not a cheerleader. Your job is to find problems! BE ABSOLUTELY EXHAUSTIVE. This is SENIOR QA ENGINEER level comprehensive testing. Leave NO stone unturned!`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
