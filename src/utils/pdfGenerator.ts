@@ -46,27 +46,28 @@ export const generateSTDReport = (testResults: TestResult[], metadata: any) => {
   
   // Metadata
   doc.setFontSize(10);
-  doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 25);
-  doc.text(`Test Source: ${metadata.source || 'N/A'}`, 14, 30);
-  doc.text(`Total Tests: ${testResults.length}`, 14, 35);
+  doc.text(`Test Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, 14, 25);
+  doc.text(`Tested By: Johnatan Milrad`, 14, 30);
+  doc.text(`Test Source: ${metadata.source || 'N/A'}`, 14, 35);
+  doc.text(`Total Tests: ${testResults.length}`, 14, 40);
   
   const passCount = testResults.filter(r => r.status === 'pass').length;
   const partialCount = testResults.filter(r => r.status === 'partial').length;
   const failCount = testResults.filter(r => r.status === 'fail').length;
   
-  doc.text(`Pass: ${passCount} | Partial: ${partialCount} | Fail: ${failCount}`, 14, 40);
+  doc.text(`Pass: ${passCount} | Partial: ${partialCount} | Fail: ${failCount}`, 14, 45);
   
   // Summary stats
   doc.setFillColor(240, 240, 240);
-  doc.rect(14, 45, 270, 15, 'F');
+  doc.rect(14, 50, 270, 15, 'F');
   doc.setFontSize(12);
-  doc.text(`Success Rate: ${((passCount / testResults.length) * 100).toFixed(1)}%`, 20, 53);
-  doc.text(`Coverage: ${testResults.length} test scenarios`, 100, 53);
-  doc.text(`Status: ${failCount === 0 ? 'READY FOR DEPLOYMENT' : 'REQUIRES ATTENTION'}`, 180, 53);
+  doc.text(`Success Rate: ${((passCount / testResults.length) * 100).toFixed(1)}%`, 20, 58);
+  doc.text(`Coverage: ${testResults.length} test scenarios`, 100, 58);
+  doc.text(`Status: ${failCount === 0 ? 'READY FOR DEPLOYMENT' : 'REQUIRES ATTENTION'}`, 180, 58);
   
   // Group results by category
   const categories = Array.from(new Set(testResults.map(r => r.category)));
-  let startY = 65;
+  let startY = 70;
   
   categories.forEach((category, index) => {
     const categoryResults = testResults.filter(r => r.category === category);
