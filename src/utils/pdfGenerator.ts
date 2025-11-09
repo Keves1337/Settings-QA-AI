@@ -10,6 +10,29 @@ interface TestResult {
   details: string;
 }
 
+// Sanitize text to remove Hebrew and other non-Latin characters
+const sanitizeText = (text: string, maxLength?: number): string => {
+  if (!text) return 'N/A';
+  
+  // Remove Hebrew characters (U+0590 to U+05FF) and other RTL characters
+  let sanitized = text
+    .replace(/[\u0590-\u05FF\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  
+  // If text is empty after sanitization, return placeholder
+  if (!sanitized || sanitized.length === 0) {
+    return '[Content contains non-Latin characters]';
+  }
+  
+  // Truncate if maxLength specified
+  if (maxLength && sanitized.length > maxLength) {
+    sanitized = sanitized.substring(0, maxLength - 3) + '...';
+  }
+  
+  return sanitized;
+};
+
 const getStatusColor = (status: string): [number, number, number] => {
   switch (status) {
     case 'pass':
@@ -112,12 +135,12 @@ export const generateSTDReport = (testResults: TestResult[], metadata: any) => {
         planY = 20;
       }
       
-      const testPlanText = `   ${idx + 1}.${testIdx + 1} Test Objective: ${test.testName}`;
+      const testPlanText = `   ${idx + 1}.${testIdx + 1} Test Objective: ${sanitizeText(test.testName, 150)}`;
       const splitText = doc.splitTextToSize(testPlanText, 260);
       doc.text(splitText, 20, planY);
       planY += splitText.length * 4;
       
-      const descText = `       Goal: ${test.description}`;
+      const descText = `       Goal: ${sanitizeText(test.description, 200)}`;
       const splitDesc = doc.splitTextToSize(descText, 255);
       doc.text(splitDesc, 20, planY);
       planY += splitDesc.length * 4 + 2;
@@ -154,13 +177,13 @@ export const generateSTDReport = (testResults: TestResult[], metadata: any) => {
     doc.text(category.toUpperCase(), 16, startY);
     startY += 5;
     
-    // Create table data with proper text wrapping
+    // Create table data with sanitized and truncated text
     const tableData = categoryResults.map(result => [
-      result.testName || 'N/A',
+      sanitizeText(result.testName, 200),
       getStatusText(result.status),
-      result.description || 'N/A',
-      result.actions || 'N/A',
-      result.details || 'N/A'
+      sanitizeText(result.description, 300),
+      sanitizeText(result.actions, 350),
+      sanitizeText(result.details, 400)
     ]);
     
     autoTable(doc, {
