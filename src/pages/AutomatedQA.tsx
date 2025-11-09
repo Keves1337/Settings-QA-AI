@@ -67,6 +67,7 @@ const AutomatedQA = () => {
       const decoder = new TextDecoder();
       let buffer = '';
       let finalData = null;
+      let sseError: string | null = null;
 
       if (reader) {
         while (true) {
@@ -92,7 +93,7 @@ const AutomatedQA = () => {
               } else if (parsed.summary) {
                 finalData = parsed;
               } else if (parsed.error) {
-                throw new Error(parsed.error);
+                sseError = parsed.error;
               }
             } catch (e) {
               console.error('Failed to parse SSE data:', e);
@@ -116,7 +117,7 @@ const AutomatedQA = () => {
             } else if (parsed.summary) {
               finalData = parsed;
             } else if (parsed.error) {
-              throw new Error(parsed.error);
+              sseError = parsed.error;
             }
           } catch (e) {
             console.error('Failed to parse SSE data (final flush):', e);
@@ -125,6 +126,9 @@ const AutomatedQA = () => {
       }
 
       if (!finalData) {
+        if (sseError) {
+          throw new Error(sseError);
+        }
         throw new Error('No data returned from analysis');
       }
 
@@ -253,6 +257,7 @@ const AutomatedQA = () => {
       const decoder = new TextDecoder();
       let buffer = '';
       let finalData = null;
+      let sseError: string | null = null;
 
       if (reader) {
         while (true) {
@@ -281,7 +286,7 @@ const AutomatedQA = () => {
                 // Final result
                 finalData = parsed;
               } else if (parsed.error) {
-                throw new Error(parsed.error);
+                sseError = parsed.error;
               }
             } catch (e) {
               console.error('Failed to parse SSE data:', e);
@@ -305,7 +310,7 @@ const AutomatedQA = () => {
             } else if (parsed.summary) {
               finalData = parsed;
             } else if (parsed.error) {
-              throw new Error(parsed.error);
+              sseError = parsed.error;
             }
           } catch (e) {
             console.error('Failed to parse SSE data (final flush):', e);
@@ -314,6 +319,9 @@ const AutomatedQA = () => {
       }
 
       if (!finalData) {
+        if (sseError) {
+          throw new Error(sseError);
+        }
         throw new Error('No data returned from analysis');
       }
 
