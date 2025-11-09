@@ -101,6 +101,29 @@ const AutomatedQA = () => {
         }
       }
 
+      // Final flush in case of leftover buffered data
+      if (buffer.trim()) {
+        const lines = buffer.split('\n');
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const data = line.slice(6);
+          if (!data || data === '[DONE]') continue;
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.progress !== undefined) {
+              setProgress(parsed.progress);
+              setProgressMessage(parsed.message || '');
+            } else if (parsed.summary) {
+              finalData = parsed;
+            } else if (parsed.error) {
+              throw new Error(parsed.error);
+            }
+          } catch (e) {
+            console.error('Failed to parse SSE data (final flush):', e);
+          }
+        }
+      }
+
       if (!finalData) {
         throw new Error('No data returned from analysis');
       }
@@ -261,6 +284,29 @@ const AutomatedQA = () => {
                 console.error('Failed to parse SSE data:', e);
               }
             }
+          }
+        }
+      }
+
+      // Final flush in case of leftover buffered data
+      if (buffer.trim()) {
+        const lines = buffer.split('\n');
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const data = line.slice(6);
+          if (!data || data === '[DONE]') continue;
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.progress !== undefined) {
+              setProgress(30 + (parsed.progress * 0.7));
+              setProgressMessage(parsed.message || '');
+            } else if (parsed.summary) {
+              finalData = parsed;
+            } else if (parsed.error) {
+              throw new Error(parsed.error);
+            }
+          } catch (e) {
+            console.error('Failed to parse SSE data (final flush):', e);
           }
         }
       }
