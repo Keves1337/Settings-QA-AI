@@ -85,17 +85,13 @@ export const STDReportDownload = ({ report }: STDReportDownloadProps) => {
       
       // If still no tests, show error
       if (testResults.length === 0) {
-        console.warn('No test data available in report; generating minimal report from summary');
-        const overall = report.summary?.overallStatus || 'warning';
-        const status = overall === 'fail' ? 'fail' : overall === 'warning' ? 'partial' : 'pass';
-        testResults = [{
-          category: 'Summary',
-          testName: `Overall status: ${overall.toUpperCase()}`,
-          status,
-          description: `Analyzed ${report.summary?.totalFiles ?? 0} file(s)`,
-          actions: 'Automated analysis executed with fallback due to limited data.',
-          details: 'No detailed tests available. This is a minimal report generated from summary data.'
-        }];
+        console.error('No test data available in report');
+        toast({
+          title: "No Test Data",
+          description: "The report doesn't contain any test data to generate PDF",
+          variant: "destructive",
+        });
+        return;
       }
 
       const metadata = {

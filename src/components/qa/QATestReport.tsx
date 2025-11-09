@@ -72,35 +72,33 @@ const IssueCard = ({ issue, idx, color }: { issue: QAReportItem; idx: number; co
 
   return (
     <div className={`p-4 bg-background rounded-lg border ${borderColor}`}>
-      <div className="flex items-start justify-between mb-2 gap-2">
+      <div className="flex items-start justify-between mb-2">
         <Badge variant={badgeColor as any} className={typeof badgeColor === 'string' ? badgeColor : ''}>
           {issue.type}
         </Badge>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground truncate">{issue.location}</span>
+          <span className="text-sm text-muted-foreground">{issue.location}</span>
           <Button
             variant="ghost"
             size="sm"
             onClick={translateToHebrew}
             disabled={isTranslating}
-            className="h-7 px-2 flex-shrink-0"
+            className="h-7 px-2"
           >
             <Languages className="w-4 h-4" />
           </Button>
         </div>
       </div>
       {translatedText ? (
-        <div className="space-y-2" dir="rtl">
-          <p className="font-medium whitespace-pre-line">
-            {translatedText}
-          </p>
+        <div className="space-y-2 text-right" dir="rtl">
+          <p className="font-medium whitespace-pre-line">{translatedText}</p>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setTranslatedText(null)}
             className="text-xs"
           >
-            הצג באנגלית
+            Show English
           </Button>
         </div>
       ) : (
@@ -203,7 +201,7 @@ export const QATestReport = ({ report }: QATestReportProps) => {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <STDReportDownload report={normalized} />
+            <STDReportDownload report={report} />
             <div className={`flex items-center gap-3 ${getStatusColor(summary.overallStatus)}`}>
               {getStatusIcon(summary.overallStatus)}
               <div className="text-right">
