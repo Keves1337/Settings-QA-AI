@@ -66,46 +66,68 @@ const AutomatedQA = () => {
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
-      let finalData = null;
+      let finalData: any = null;
       let sseError: any = null;
 
       if (reader) {
-        while (true) {
+        let streamDone = false;
+        while (!streamDone) {
           const { done, value } = await reader.read();
           if (done) break;
 
           buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
 
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const data = line.slice(6);
-              if (data === '[DONE]') continue;
-              
-              try {
-                const parsed = JSON.parse(data);
-                if (parsed.progress !== undefined) {
-                  setProgress(parsed.progress);
-                  setProgressMessage(parsed.message || '');
-                } else if (parsed.summary) {
-                  // Final result
-                  finalData = parsed;
-                } else if (parsed.error) {
-                  sseError = parsed.error;
-                }
-              } catch (e) {
-                console.error('Failed to parse SSE data:', e);
+          let newlineIndex: number;
+          while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+            let line = buffer.slice(0, newlineIndex);
+            buffer = buffer.slice(newlineIndex + 1);
+
+            if (line.endsWith('\r')) line = line.slice(0, -1);
+            if (line.startsWith(':') || line.trim() === '') continue; // SSE keepalive/comments
+            if (!line.startsWith('data: ')) continue;
+
+            const dataStr = line.slice(6).trim();
+            if (dataStr === '[DONE]') { streamDone = true; break; }
+
+            try {
+              const parsed = JSON.parse(dataStr);
+              if (parsed.progress !== undefined) {
+                setProgress(parsed.progress);
+                setProgressMessage(parsed.message || '');
+              } else if (parsed.summary || parsed.report?.summary || parsed.data?.summary) {
+                // Accept a few possible envelope shapes
+                finalData = parsed.summary ? parsed : (parsed.report?.summary ? parsed.report : parsed.data);
+              } else if (parsed.error) {
+                sseError = parsed.error;
               }
+            } catch {
+              // Incomplete JSON split across lines: re-buffer and wait for more
+              buffer = line + '\n' + buffer;
+              break;
             }
           }
         }
       }
 
+      // Fallback: if streaming didn't yield final data, try a non-streaming call
       if (!finalData) {
         if (sseError) {
           throw new Error(sseError);
         }
+        try {
+          const { data: nonStreamData, error: fnError } = await supabase.functions.invoke('analyze-project-qa', {
+            body: { url: url.trim(), streaming: false }
+          });
+          if (fnError) throw fnError;
+          if (nonStreamData?.summary || nonStreamData?.report?.summary || nonStreamData?.data?.summary) {
+            finalData = nonStreamData.summary ? nonStreamData : (nonStreamData.report?.summary ? nonStreamData.report : nonStreamData.data);
+          }
+        } catch (e) {
+          // ignore here; we'll throw a clear message below if still missing
+        }
+      }
+
+      if (!finalData) {
         throw new Error('No data returned from analysis');
       }
 
@@ -233,47 +255,67 @@ const AutomatedQA = () => {
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
-      let finalData = null;
+      let finalData: any = null;
       let sseError: any = null;
 
       if (reader) {
-        while (true) {
+        let streamDone = false;
+        while (!streamDone) {
           const { done, value } = await reader.read();
           if (done) break;
 
           buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
 
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const data = line.slice(6);
-              if (data === '[DONE]') continue;
-              
-              try {
-                const parsed = JSON.parse(data);
-                if (parsed.progress !== undefined) {
-                  // Map backend progress (30-100) to frontend progress (30-100)
-                  setProgress(30 + (parsed.progress * 0.7));
-                  setProgressMessage(parsed.message || '');
-                } else if (parsed.summary) {
-                  // Final result
-                  finalData = parsed;
-                } else if (parsed.error) {
-                  sseError = parsed.error;
-                }
-              } catch (e) {
-                console.error('Failed to parse SSE data:', e);
+          let newlineIndex: number;
+          while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+            let line = buffer.slice(0, newlineIndex);
+            buffer = buffer.slice(newlineIndex + 1);
+
+            if (line.endsWith('\r')) line = line.slice(0, -1);
+            if (line.startsWith(':') || line.trim() === '') continue;
+            if (!line.startsWith('data: ')) continue;
+
+            const dataStr = line.slice(6).trim();
+            if (dataStr === '[DONE]') { streamDone = true; break; }
+
+            try {
+              const parsed = JSON.parse(dataStr);
+              if (parsed.progress !== undefined) {
+                // Map backend progress (30-100) to frontend progress (30-100)
+                setProgress(30 + (parsed.progress * 0.7));
+                setProgressMessage(parsed.message || '');
+              } else if (parsed.summary || parsed.report?.summary || parsed.data?.summary) {
+                finalData = parsed.summary ? parsed : (parsed.report?.summary ? parsed.report : parsed.data);
+              } else if (parsed.error) {
+                sseError = parsed.error;
               }
+            } catch {
+              buffer = line + '\n' + buffer;
+              break;
             }
           }
         }
       }
 
+      // Fallback: if streaming didn't yield final data, try a non-streaming call
       if (!finalData) {
         if (sseError) {
           throw new Error(sseError);
         }
+        try {
+          const { data: nonStreamData, error: fnError } = await supabase.functions.invoke('analyze-project-qa', {
+            body: { files: fileContents, streaming: false }
+          });
+          if (fnError) throw fnError;
+          if (nonStreamData?.summary || nonStreamData?.report?.summary || nonStreamData?.data?.summary) {
+            finalData = nonStreamData.summary ? nonStreamData : (nonStreamData.report?.summary ? nonStreamData.report : nonStreamData.data);
+          }
+        } catch (e) {
+          // ignore here; we'll throw a clear message below if still missing
+        }
+      }
+
+      if (!finalData) {
         throw new Error('No data returned from analysis');
       }
 
