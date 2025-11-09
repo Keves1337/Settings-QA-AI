@@ -429,7 +429,7 @@ SECURITY TESTS (150+ tests):
 - NoSQL injection: MongoDB, Cassandra specific payloads
 - Path traversal: ../../../etc/passwd, ....//....//....//windows/system32
 - File inclusion: LFI (../../../../etc/passwd), RFI (http://evil.com/shell.php)
-- Command injection: ; ls -la, | whoami, && cat /etc/passwd, `id`
+- Command injection: ; ls -la, | whoami, && cat /etc/passwd, \`id\`
 - Code injection: eval() exploitation, Function() constructor, setTimeout with strings
 - LDAP injection: *)(uid=*), admin*), )(uid=admin)
 - XML injection: XXE attacks, billion laughs, external entity expansion
