@@ -72,50 +72,67 @@ const IssueCard = ({ issue, idx, color }: { issue: QAReportItem; idx: number; co
 
   return (
     <div className={`p-4 bg-background rounded-lg border ${borderColor}`}>
-      <div className="flex items-start justify-between mb-2">
-        <Badge variant={badgeColor as any} className={typeof badgeColor === 'string' ? badgeColor : ''}>
-          {issue.type}
-        </Badge>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">{issue.location}</span>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={translateToHebrew}
-            disabled={isTranslating}
-            className="h-7 px-2"
-          >
-            <Languages className="w-4 h-4" />
-          </Button>
+      <div className="flex items-start gap-4">
+        {/* Issue Image */}
+        {(issue as any).imageUrl && (
+          <div className="flex-shrink-0 w-24 h-24 rounded-lg overflow-hidden border border-border">
+            <img 
+              src={(issue as any).imageUrl} 
+              alt={`Visual representation of ${issue.type}`}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        )}
+        
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between mb-2 gap-2">
+            <Badge variant={badgeColor as any} className={typeof badgeColor === 'string' ? badgeColor : ''}>
+              {issue.type}
+            </Badge>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground truncate">{issue.location}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={translateToHebrew}
+                disabled={isTranslating}
+                className="h-7 px-2 flex-shrink-0"
+              >
+                <Languages className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+          {translatedText ? (
+            <div className="space-y-2" dir="rtl">
+              <p className="font-medium whitespace-pre-line">
+                {translatedText}
+              </p>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setTranslatedText(null)}
+                className="text-xs"
+              >
+                הצג באנגלית
+              </Button>
+            </div>
+          ) : (
+            <>
+              <p className="font-medium mb-2">{issue.description}</p>
+              {issue.impact && (
+                <p className="text-sm text-muted-foreground mb-2">
+                  <strong>Impact:</strong> {issue.impact}
+                </p>
+              )}
+              {issue.recommendation && (
+                <p className="text-sm text-muted-foreground">
+                  <strong>Fix:</strong> {issue.recommendation}
+                </p>
+              )}
+            </>
+          )}
         </div>
       </div>
-      {translatedText ? (
-        <div className="space-y-2 text-right" dir="rtl">
-          <p className="font-medium whitespace-pre-line">{translatedText}</p>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setTranslatedText(null)}
-            className="text-xs"
-          >
-            Show English
-          </Button>
-        </div>
-      ) : (
-        <>
-          <p className="font-medium mb-2">{issue.description}</p>
-          {issue.impact && (
-            <p className="text-sm text-muted-foreground mb-2">
-              <strong>Impact:</strong> {issue.impact}
-            </p>
-          )}
-          {issue.recommendation && (
-            <p className="text-sm text-muted-foreground">
-              <strong>Fix:</strong> {issue.recommendation}
-            </p>
-          )}
-        </>
-      )}
     </div>
   );
 };

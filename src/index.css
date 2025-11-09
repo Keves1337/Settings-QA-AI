@@ -187,4 +187,15 @@ All colors MUST be HSL.
   .smooth-transition {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
+  
+  /* Hebrew text support with proper fonts */
+  [dir="rtl"] {
+    font-family: 'Arial', 'Segoe UI', 'Tahoma', 'Noto Sans Hebrew', 'David Libre', sans-serif;
+    direction: rtl;
+    text-align: right;
+  }
+  
+  [dir="rtl"] * {
+    unicode-bidi: plaintext;
+  }
 }

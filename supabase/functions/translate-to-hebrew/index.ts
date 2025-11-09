@@ -106,7 +106,12 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ translatedText }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json; charset=utf-8'
+        } 
+      }
     );
 
   } catch (error) {
