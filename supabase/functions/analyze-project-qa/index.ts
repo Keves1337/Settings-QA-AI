@@ -954,62 +954,10 @@ BE ABSOLUTELY EXHAUSTIVE AND RUTHLESSLY CRITICAL. This is SENIOR QA ENGINEER lev
             console.log('Report summary:', JSON.stringify(report.summary));
             console.log('Detailed tests count:', report.detailedTests?.length || 0);
             
-            // Generate images for critical and high priority issues
-            controller.enqueue(encoder.encode(sendProgress(92, 'Generating visual aids for issues...')));
-            
-            const generateIssueImage = async (issue: any) => {
-              try {
-                const imagePrompt = `Create a simple, clear icon or illustration representing this software issue: ${issue.type || 'Error'} - ${issue.description?.substring(0, 100)}. Style: flat design, professional, tech-related, clear and simple.`;
-                
-                const imageResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-                  method: 'POST',
-                  headers: {
-                    'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({
-                    model: 'google/gemini-2.5-flash-image-preview',
-                    messages: [{
-                      role: 'user',
-                      content: imagePrompt
-                    }],
-                    modalities: ['image', 'text']
-                  })
-                });
-                
-                if (imageResponse.ok) {
-                  const imageData = await imageResponse.json();
-                  const imageUrl = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-                  if (imageUrl) {
-                    return imageUrl;
-                  }
-                }
-              } catch (imgError) {
-                console.error('Failed to generate image for issue:', imgError);
-              }
-              return null;
-            };
-            
-            // Generate images for up to 5 critical issues
-            if (report.criticalIssues && report.criticalIssues.length > 0) {
-              const criticalToGenerate = report.criticalIssues.slice(0, 5);
-              for (let i = 0; i < criticalToGenerate.length; i++) {
-                const imageUrl = await generateIssueImage(criticalToGenerate[i]);
-                if (imageUrl) {
-                  report.criticalIssues[i].imageUrl = imageUrl;
-                }
-              }
-            }
-            
-            // Generate images for up to 5 high priority issues
-            if (report.highPriorityIssues && report.highPriorityIssues.length > 0) {
-              const highToGenerate = report.highPriorityIssues.slice(0, 5);
-              for (let i = 0; i < highToGenerate.length; i++) {
-                const imageUrl = await generateIssueImage(highToGenerate[i]);
-                if (imageUrl) {
-                  report.highPriorityIssues[i].imageUrl = imageUrl;
-                }
-              }
+            // Cap detailed tests to avoid oversized payloads
+            if (Array.isArray(report.detailedTests) && report.detailedTests.length > 300) {
+              report.detailedTests = report.detailedTests.slice(0, 300);
+              console.log('Trimmed detailedTests to 300 items to fit payload limits');
             }
             
             controller.enqueue(encoder.encode(sendProgress(100, 'Complete!')));
@@ -1019,7 +967,31 @@ BE ABSOLUTELY EXHAUSTIVE AND RUTHLESSLY CRITICAL. This is SENIOR QA ENGINEER lev
             controller.close();
           } catch (error: any) {
             console.error('Streaming error:', error);
+            // Send explicit error event
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: error.message })}\n\n`));
+            // Also send a minimal fallback report so the client never sees "no data"
+            const fallback = {
+              summary: {
+                totalFiles: filesCount || 0,
+                criticalIssues: 0,
+                highPriorityIssues: 0,
+                warnings: 0,
+                passedChecks: 0,
+                overallStatus: 'fail'
+              },
+              criticalIssues: [],
+              highPriorityIssues: [],
+              warnings: [],
+              passedChecks: [],
+              detailedTests: [],
+              metadata: {
+                source: url || 'Unknown',
+                analyzedFiles: filesCount || 0,
+                totalLines: 0
+              }
+            };
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(fallback)}\n\n`));
+            controller.enqueue(encoder.encode('data: [DONE]\n\n'));
             controller.close();
           }
         }
