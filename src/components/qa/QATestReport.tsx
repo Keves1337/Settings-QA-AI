@@ -203,7 +203,7 @@ export const QATestReport = ({ report }: QATestReportProps) => {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <STDReportDownload report={report} />
+            <STDReportDownload report={normalized} />
             <div className={`flex items-center gap-3 ${getStatusColor(summary.overallStatus)}`}>
               {getStatusIcon(summary.overallStatus)}
               <div className="text-right">

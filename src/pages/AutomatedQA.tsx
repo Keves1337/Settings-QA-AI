@@ -19,6 +19,7 @@ const AutomatedQA = () => {
   const [url, setUrl] = useState('');
   const [progress, setProgress] = useState(0);
   const [progressMessage, setProgressMessage] = useState('');
+  const [tabValue, setTabValue] = useState<'upload' | 'report' | 'execution' | 'reports'>('upload');
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -147,6 +148,7 @@ const AutomatedQA = () => {
       setQaReport(finalData);
       setProgress(100);
       setProgressMessage('Analysis complete!');
+      setTabValue('report');
       
       const status = finalData.summary?.overallStatus || 'unknown';
       const statusMessages = {
@@ -352,6 +354,7 @@ const AutomatedQA = () => {
       setQaReport(data);
       setProgress(100);
       setProgressMessage('Analysis complete!');
+      setTabValue('report');
       
       const status = data.summary?.overallStatus || 'unknown';
       const statusMessages = {
@@ -422,7 +425,7 @@ const AutomatedQA = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="upload" className="space-y-6">
+        <Tabs value={tabValue} onValueChange={(v) => setTabValue(v as any)} className="space-y-6">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="upload">Upload & Test</TabsTrigger>
             <TabsTrigger value="report" className="gap-2">
