@@ -888,7 +888,19 @@ BE ABSOLUTELY EXHAUSTIVE AND RUTHLESSLY CRITICAL. This is SENIOR QA ENGINEER lev
               throw new Error(`AI analysis failed: ${response.status}`);
             }
 
-            const data = await response.json();
+            // Parse AI response with a hard timeout to avoid hanging
+            const PARSE_TIMEOUT_MS = 25000;
+            let data: any;
+            try {
+              const textPromise = response.text();
+              const dataText = await Promise.race([
+                textPromise,
+                new Promise<string>((_, reject) => setTimeout(() => reject(new Error('AI response parse timeout')), PARSE_TIMEOUT_MS))
+              ]) as string;
+              data = JSON.parse(dataText);
+            } catch (e: any) {
+              throw new Error(e?.message || 'Failed to parse AI response');
+            }
             console.log('AI Response received, checking for tool calls...');
             
             const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
