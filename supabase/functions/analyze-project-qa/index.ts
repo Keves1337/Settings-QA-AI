@@ -966,9 +966,9 @@ BE ABSOLUTELY EXHAUSTIVE AND RUTHLESSLY CRITICAL. This is SENIOR QA ENGINEER lev
             console.log('Detailed tests count:', report.detailedTests?.length || 0);
             
             // Cap detailed tests to avoid oversized payloads
-            if (Array.isArray(report.detailedTests) && report.detailedTests.length > 300) {
-              report.detailedTests = report.detailedTests.slice(0, 300);
-              console.log('Trimmed detailedTests to 300 items to fit payload limits');
+            if (Array.isArray(report.detailedTests) && report.detailedTests.length > 60) {
+              report.detailedTests = report.detailedTests.slice(0, 60);
+              console.log('Trimmed detailedTests to 60 items to fit payload limits');
             }
             
             controller.enqueue(encoder.encode(sendProgress(100, 'Complete!')));

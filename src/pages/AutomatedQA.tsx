@@ -77,25 +77,25 @@ const AutomatedQA = () => {
           const lines = buffer.split('\n');
           buffer = lines.pop() || '';
 
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const data = line.slice(6);
-              if (data === '[DONE]') continue;
-              
-              try {
-                const parsed = JSON.parse(data);
-                if (parsed.progress !== undefined) {
-                  setProgress(parsed.progress);
-                  setProgressMessage(parsed.message || '');
-                } else if (parsed.summary) {
-                  // Final result
-                  finalData = parsed;
-                } else if (parsed.error) {
-                  throw new Error(parsed.error);
-                }
-              } catch (e) {
-                console.error('Failed to parse SSE data:', e);
+          for (let raw of lines) {
+            let line = raw;
+            if (line.endsWith('\r')) line = line.slice(0, -1);
+            if (line.startsWith(':') || line.trim() === '') continue;
+            if (!line.startsWith('data: ')) continue;
+            const data = line.slice(6);
+            if (data === '[DONE]') continue;
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed.progress !== undefined) {
+                setProgress(parsed.progress);
+                setProgressMessage(parsed.message || '');
+              } else if (parsed.summary) {
+                finalData = parsed;
+              } else if (parsed.error) {
+                throw new Error(parsed.error);
               }
+            } catch (e) {
+              console.error('Failed to parse SSE data:', e);
             }
           }
         }
@@ -263,26 +263,28 @@ const AutomatedQA = () => {
           const lines = buffer.split('\n');
           buffer = lines.pop() || '';
 
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const data = line.slice(6);
-              if (data === '[DONE]') continue;
-              
-              try {
-                const parsed = JSON.parse(data);
-                if (parsed.progress !== undefined) {
-                  // Map backend progress (30-100) to frontend progress (30-100)
-                  setProgress(30 + (parsed.progress * 0.7));
-                  setProgressMessage(parsed.message || '');
-                } else if (parsed.summary) {
-                  // Final result
-                  finalData = parsed;
-                } else if (parsed.error) {
-                  throw new Error(parsed.error);
-                }
-              } catch (e) {
-                console.error('Failed to parse SSE data:', e);
+          for (let raw of lines) {
+            let line = raw;
+            if (line.endsWith('\r')) line = line.slice(0, -1);
+            if (line.startsWith(':') || line.trim() === '') continue;
+            if (!line.startsWith('data: ')) continue;
+            const data = line.slice(6);
+            if (data === '[DONE]') continue;
+            
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed.progress !== undefined) {
+                // Map backend progress (30-100) to frontend progress (30-100)
+                setProgress(30 + (parsed.progress * 0.7));
+                setProgressMessage(parsed.message || '');
+              } else if (parsed.summary) {
+                // Final result
+                finalData = parsed;
+              } else if (parsed.error) {
+                throw new Error(parsed.error);
               }
+            } catch (e) {
+              console.error('Failed to parse SSE data:', e);
             }
           }
         }
