@@ -103,7 +103,7 @@ export const STDReportDownload = ({ report }: STDReportDownloadProps) => {
       };
 
       console.log('Generating PDF with', testResults.length, 'tests');
-      downloadSTDReport(testResults, metadata);
+      downloadSTDReport(report);
       
       toast({
         title: "Report Downloaded",

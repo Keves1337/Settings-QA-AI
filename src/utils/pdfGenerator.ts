@@ -10,6 +10,31 @@ interface TestResult {
   details: string;
 }
 
+interface QAReportItem {
+  type: string;
+  description: string;
+  location: string;
+  recommendation?: string;
+  impact?: string;
+}
+
+interface QAReportData {
+  summary: {
+    totalFiles: number;
+    criticalIssues: number;
+    highPriorityIssues: number;
+    warnings: number;
+    passedChecks: number;
+    overallStatus: 'pass' | 'warning' | 'fail';
+  };
+  criticalIssues: QAReportItem[];
+  highPriorityIssues: QAReportItem[];
+  warnings: QAReportItem[];
+  passedChecks: QAReportItem[];
+  detailedTests?: TestResult[];
+  metadata?: any;
+}
+
 const getStatusColor = (status: string): [number, number, number] => {
   switch (status) {
     case 'pass':
@@ -36,7 +61,9 @@ const getStatusText = (status: string): string => {
   }
 };
 
-export const generateSTDReport = (testResults: TestResult[], metadata: any) => {
+export const generateSTDReport = (reportData: QAReportData) => {
+  const testResults = reportData.detailedTests || [];
+  const metadata = reportData.metadata || {};
   const doc = new jsPDF('l', 'mm', 'a4'); // Landscape for more space
   
   // Title
@@ -57,15 +84,211 @@ export const generateSTDReport = (testResults: TestResult[], metadata: any) => {
   
   doc.text(`Pass: ${passCount} | Partial: ${partialCount} | Fail: ${failCount}`, 14, 45);
   
-  // Summary stats
+  // Summary stats from report data
   doc.setFillColor(240, 240, 240);
-  doc.rect(14, 50, 270, 15, 'F');
+  doc.rect(14, 50, 270, 20, 'F');
   doc.setFontSize(12);
-  doc.text(`Success Rate: ${((passCount / testResults.length) * 100).toFixed(1)}%`, 20, 58);
-  doc.text(`Coverage: ${testResults.length} test scenarios`, 100, 58);
-  doc.text(`Status: ${failCount === 0 ? 'READY FOR DEPLOYMENT' : 'REQUIRES ATTENTION'}`, 180, 58);
+  doc.text(`Overall Status: ${reportData.summary.overallStatus.toUpperCase()}`, 20, 58);
+  doc.text(`Critical Issues: ${reportData.summary.criticalIssues}`, 100, 58);
+  doc.text(`High Priority: ${reportData.summary.highPriorityIssues}`, 160, 58);
+  doc.text(`Warnings: ${reportData.summary.warnings}`, 220, 58);
+  doc.text(`Passed Checks: ${reportData.summary.passedChecks}`, 20, 66);
+  doc.text(`Success Rate: ${((passCount / (testResults.length || 1)) * 100).toFixed(1)}%`, 100, 66);
   
-  // Add Test Plan Overview Page
+  // Add SUMMARY ISSUES section (Critical, High Priority, Warnings, Passed)
+  doc.addPage();
+  doc.setFontSize(18);
+  doc.setTextColor(0, 0, 0);
+  doc.text('SUMMARY ISSUES & FINDINGS', 148, 15, { align: 'center' });
+  
+  let summaryY = 25;
+  
+  // Critical Issues Section
+  if (reportData.criticalIssues.length > 0) {
+    doc.setFontSize(14);
+    doc.setFillColor(239, 68, 68);
+    doc.rect(14, summaryY, 270, 8, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.text(`CRITICAL ISSUES (${reportData.criticalIssues.length})`, 16, summaryY + 5);
+    summaryY += 12;
+    
+    reportData.criticalIssues.forEach((issue, idx) => {
+      if (summaryY > 185) {
+        doc.addPage();
+        summaryY = 20;
+      }
+      
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
+      doc.setFillColor(254, 226, 226);
+      doc.rect(14, summaryY, 270, 6, 'F');
+      doc.text(`${idx + 1}. ${issue.type}`, 16, summaryY + 4);
+      doc.setFontSize(8);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Location: ${issue.location}`, 200, summaryY + 4);
+      summaryY += 8;
+      
+      doc.setFontSize(9);
+      doc.setTextColor(0, 0, 0);
+      const descLines = doc.splitTextToSize(issue.description, 260);
+      doc.text(descLines, 20, summaryY);
+      summaryY += descLines.length * 4;
+      
+      if (issue.impact) {
+        doc.setTextColor(139, 0, 0);
+        const impactLines = doc.splitTextToSize(`Impact: ${issue.impact}`, 260);
+        doc.text(impactLines, 20, summaryY);
+        summaryY += impactLines.length * 4;
+      }
+      
+      if (issue.recommendation) {
+        doc.setTextColor(0, 100, 0);
+        const recLines = doc.splitTextToSize(`Fix: ${issue.recommendation}`, 260);
+        doc.text(recLines, 20, summaryY);
+        summaryY += recLines.length * 4;
+      }
+      
+      summaryY += 4;
+    });
+    summaryY += 6;
+  }
+  
+  // High Priority Issues Section
+  if (reportData.highPriorityIssues.length > 0) {
+    if (summaryY > 170) {
+      doc.addPage();
+      summaryY = 20;
+    }
+    
+    doc.setFontSize(14);
+    doc.setFillColor(249, 115, 22);
+    doc.rect(14, summaryY, 270, 8, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.text(`HIGH PRIORITY ISSUES (${reportData.highPriorityIssues.length})`, 16, summaryY + 5);
+    summaryY += 12;
+    
+    reportData.highPriorityIssues.forEach((issue, idx) => {
+      if (summaryY > 185) {
+        doc.addPage();
+        summaryY = 20;
+      }
+      
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
+      doc.setFillColor(255, 237, 213);
+      doc.rect(14, summaryY, 270, 6, 'F');
+      doc.text(`${idx + 1}. ${issue.type}`, 16, summaryY + 4);
+      doc.setFontSize(8);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Location: ${issue.location}`, 200, summaryY + 4);
+      summaryY += 8;
+      
+      doc.setFontSize(9);
+      doc.setTextColor(0, 0, 0);
+      const descLines = doc.splitTextToSize(issue.description, 260);
+      doc.text(descLines, 20, summaryY);
+      summaryY += descLines.length * 4;
+      
+      if (issue.recommendation) {
+        doc.setTextColor(0, 100, 0);
+        const recLines = doc.splitTextToSize(`Fix: ${issue.recommendation}`, 260);
+        doc.text(recLines, 20, summaryY);
+        summaryY += recLines.length * 4;
+      }
+      
+      summaryY += 4;
+    });
+    summaryY += 6;
+  }
+  
+  // Warnings Section
+  if (reportData.warnings.length > 0) {
+    if (summaryY > 170) {
+      doc.addPage();
+      summaryY = 20;
+    }
+    
+    doc.setFontSize(14);
+    doc.setFillColor(234, 179, 8);
+    doc.rect(14, summaryY, 270, 8, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.text(`WARNINGS (${reportData.warnings.length})`, 16, summaryY + 5);
+    summaryY += 12;
+    
+    reportData.warnings.forEach((issue, idx) => {
+      if (summaryY > 185) {
+        doc.addPage();
+        summaryY = 20;
+      }
+      
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
+      doc.setFillColor(254, 249, 195);
+      doc.rect(14, summaryY, 270, 6, 'F');
+      doc.text(`${idx + 1}. ${issue.type}`, 16, summaryY + 4);
+      doc.setFontSize(8);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Location: ${issue.location}`, 200, summaryY + 4);
+      summaryY += 8;
+      
+      doc.setFontSize(9);
+      doc.setTextColor(0, 0, 0);
+      const descLines = doc.splitTextToSize(issue.description, 260);
+      doc.text(descLines, 20, summaryY);
+      summaryY += descLines.length * 4;
+      
+      if (issue.recommendation) {
+        doc.setTextColor(0, 100, 0);
+        const recLines = doc.splitTextToSize(`Fix: ${issue.recommendation}`, 260);
+        doc.text(recLines, 20, summaryY);
+        summaryY += recLines.length * 4;
+      }
+      
+      summaryY += 4;
+    });
+    summaryY += 6;
+  }
+  
+  // Passed Checks Section
+  if (reportData.passedChecks.length > 0) {
+    if (summaryY > 170) {
+      doc.addPage();
+      summaryY = 20;
+    }
+    
+    doc.setFontSize(14);
+    doc.setFillColor(34, 197, 94);
+    doc.rect(14, summaryY, 270, 8, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.text(`PASSED CHECKS (${reportData.passedChecks.length})`, 16, summaryY + 5);
+    summaryY += 12;
+    
+    reportData.passedChecks.forEach((check, idx) => {
+      if (summaryY > 190) {
+        doc.addPage();
+        summaryY = 20;
+      }
+      
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
+      doc.setFillColor(220, 252, 231);
+      doc.rect(14, summaryY, 270, 6, 'F');
+      doc.text(`${idx + 1}. ${check.type}`, 16, summaryY + 4);
+      doc.setFontSize(8);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Location: ${check.location}`, 200, summaryY + 4);
+      summaryY += 8;
+      
+      doc.setFontSize(9);
+      doc.setTextColor(0, 0, 0);
+      const descLines = doc.splitTextToSize(check.description, 260);
+      doc.text(descLines, 20, summaryY);
+      summaryY += descLines.length * 4 + 3;
+    });
+  }
+  
+  // Only add detailed tests section if there are detailed tests
+  if (testResults.length > 0) {
   doc.addPage();
   doc.setFontSize(18);
   doc.setTextColor(0, 0, 0);
@@ -224,6 +447,7 @@ export const generateSTDReport = (testResults: TestResult[], metadata: any) => {
       startY = 20;
     }
   });
+  } // End of if (testResults.length > 0)
   
   // Add footer with page numbers
   const pageCount = (doc as any).internal.getNumberOfPages();
@@ -248,8 +472,8 @@ export const generateSTDReport = (testResults: TestResult[], metadata: any) => {
   return doc;
 };
 
-export const downloadSTDReport = (testResults: TestResult[], metadata: any) => {
-  const doc = generateSTDReport(testResults, metadata);
+export const downloadSTDReport = (reportData: QAReportData) => {
+  const doc = generateSTDReport(reportData);
   const fileName = `STD_Report_${new Date().getTime()}.pdf`;
   doc.save(fileName);
 };
