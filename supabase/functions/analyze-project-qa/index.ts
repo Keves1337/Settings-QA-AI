@@ -878,43 +878,56 @@ BE ABSOLUTELY EXHAUSTIVE AND RUTHLESSLY CRITICAL. This is SENIOR QA ENGINEER lev
             }
 
             const data = await response.json();
+            console.log('AI Response received, checking for tool calls...');
+            
             const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
             
             controller.enqueue(encoder.encode(sendProgress(90, 'Finalizing report...')));
             
             let report;
             if (toolCall) {
-              const parsed = JSON.parse(toolCall.function.arguments);
-              if (parsed.summary) {
-                report = parsed;
-              } else {
-                // Transform old format to new format
-                const criticalIssues = parsed.issues?.filter((i: any) => i.severity === 'critical') || [];
-                const highPriorityIssues = parsed.issues?.filter((i: any) => i.severity === 'high') || [];
-                const warnings = parsed.issues?.filter((i: any) => i.severity === 'medium' || i.severity === 'low') || [];
+              console.log('Tool call found, parsing arguments...');
+              try {
+                const parsed = JSON.parse(toolCall.function.arguments);
+                console.log('Parsed tool call arguments, checking structure...');
                 
-                report = {
-                  summary: {
-                    totalFiles: filesToAnalyze.length,
-                    criticalIssues: criticalIssues.length,
-                    highPriorityIssues: highPriorityIssues.length,
-                    warnings: warnings.length,
-                    passedChecks: 0,
-                    overallStatus: criticalIssues.length > 0 ? 'fail' : (highPriorityIssues.length > 0 ? 'warning' : 'pass')
-                  },
-                  criticalIssues,
-                  highPriorityIssues,
-                  warnings,
-                  passedChecks: [],
-                  detailedTests: [],
-                  metadata: {
-                    source: filesToAnalyze[0]?.name || filesToAnalyze[0]?.path || url || 'Unknown',
-                    analyzedFiles: filesToAnalyze.length,
-                    totalLines: 0
-                  }
-                };
+                if (parsed.summary) {
+                  console.log('Report has summary, using as-is');
+                  report = parsed;
+                } else {
+                  console.log('Report missing summary, transforming old format...');
+                  // Transform old format to new format
+                  const criticalIssues = parsed.issues?.filter((i: any) => i.severity === 'critical') || [];
+                  const highPriorityIssues = parsed.issues?.filter((i: any) => i.severity === 'high') || [];
+                  const warnings = parsed.issues?.filter((i: any) => i.severity === 'medium' || i.severity === 'low') || [];
+                  
+                  report = {
+                    summary: {
+                      totalFiles: filesToAnalyze.length,
+                      criticalIssues: criticalIssues.length,
+                      highPriorityIssues: highPriorityIssues.length,
+                      warnings: warnings.length,
+                      passedChecks: 0,
+                      overallStatus: criticalIssues.length > 0 ? 'fail' : (highPriorityIssues.length > 0 ? 'warning' : 'pass')
+                    },
+                    criticalIssues,
+                    highPriorityIssues,
+                    warnings,
+                    passedChecks: [],
+                    detailedTests: parsed.detailedTests || [],
+                    metadata: {
+                      source: filesToAnalyze[0]?.name || filesToAnalyze[0]?.path || url || 'Unknown',
+                      analyzedFiles: filesToAnalyze.length,
+                      totalLines: 0
+                    }
+                  };
+                }
+              } catch (parseError: any) {
+                console.error('Error parsing tool call arguments:', parseError);
+                throw new Error(`Failed to parse AI response: ${parseError.message}`);
               }
             } else {
+              console.log('No tool call found in AI response, creating default report');
               report = {
                 summary: {
                   totalFiles: filesToAnalyze.length,
@@ -937,9 +950,14 @@ BE ABSOLUTELY EXHAUSTIVE AND RUTHLESSLY CRITICAL. This is SENIOR QA ENGINEER lev
               };
             }
 
+            console.log('Report prepared, sending final data...');
+            console.log('Report summary:', JSON.stringify(report.summary));
+            console.log('Detailed tests count:', report.detailedTests?.length || 0);
+            
             controller.enqueue(encoder.encode(sendProgress(100, 'Complete!')));
             controller.enqueue(encoder.encode(`data: ${JSON.stringify(report)}\n\n`));
             controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+            console.log('Final data sent, closing stream');
             controller.close();
           } catch (error: any) {
             console.error('Streaming error:', error);
