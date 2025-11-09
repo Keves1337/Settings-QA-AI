@@ -735,7 +735,7 @@ STATUS GUIDELINES (BE CRITICAL):
 - REMEMBER: A good QA report has many failures - that's how bugs get fixed!
 
 CRITICAL REQUIREMENTS:
-- MINIMUM 800 tests, TARGET 1000+ tests
+- MINIMUM 800 tests, TARGET 1000+ tests (OVERALL COVERAGE), but cap detailedTests output to a HARD LIMIT of 60 items to avoid oversized payloads
 - Distribute evenly across all 10 categories
 - Include at least 150 sanity tests as smoke tests
 - Every test must be DETAILED and SPECIFIC
@@ -747,9 +747,17 @@ CRITICAL REQUIREMENTS:
 - You are a BUG HUNTER, not a quality approver
 - The goal is to FIND PROBLEMS, not to validate that everything works
 
+OUTPUT SIZE LIMITS (IMPORTANT):
+- Populate summary/metrics for the full suite, but include at most 60 items in detailedTests
+- Prefer selecting the most impactful failures and representative samples across categories for detailedTests
+- Keep JSON compact and avoid verbose repetition
+
 BE ABSOLUTELY EXHAUSTIVE AND RUTHLESSLY CRITICAL. This is SENIOR QA ENGINEER level work. Your reputation depends on finding bugs that others miss!`;
 
             controller.enqueue(encoder.encode(sendProgress(60, 'AI is analyzing your code...')));
+
+            const abortController = new AbortController();
+            const timeoutId = setTimeout(() => abortController.abort('AI timeout'), 30000);
 
             const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
               method: 'POST',
@@ -757,6 +765,7 @@ BE ABSOLUTELY EXHAUSTIVE AND RUTHLESSLY CRITICAL. This is SENIOR QA ENGINEER lev
                 'Authorization': `Bearer ${LOVABLE_API_KEY}`,
                 'Content-Type': 'application/json',
               },
+              signal: abortController.signal,
               body: JSON.stringify({
                 model: 'google/gemini-2.5-flash',
                 messages: [
@@ -862,6 +871,8 @@ BE ABSOLUTELY EXHAUSTIVE AND RUTHLESSLY CRITICAL. This is SENIOR QA ENGINEER lev
                 tool_choice: { type: 'function', function: { name: 'generate_qa_report' } }
               })
             });
+
+            clearTimeout(timeoutId);
 
             controller.enqueue(encoder.encode(sendProgress(80, 'Processing AI response...')));
 
@@ -1185,9 +1196,14 @@ CATEGORIES - Distribute tests across ALL categories (aim for these minimums):
 9. USER EXPERIENCE TESTS (60+ tests): UI responsiveness, animations, loading states, error messages, tooltips, navigation flows
 10. ERROR HANDLING TESTS (60+ tests): Network failures, timeouts, 404s, 500s, validation errors, exception handling
 
-Generate 800-1000+ UNIQUE, SPECIFIC, DETAILED test scenarios with exact steps, expected results, actual results, and technical findings. CRITICAL: REPEAT each unique test 10 times with slight variations - label as "Run X of 10" to ensure consistent pass/fail results.
+Generate UNIQUE, SPECIFIC, DETAILED test scenarios with exact steps, expected results, actual results, and technical findings. CRITICAL: REPEAT each unique test 10 times with slight variations - label as "Run X of 10" to ensure consistent pass/fail results.
 
-BE RUTHLESSLY CRITICAL - EXPECT 40-60% FAILURES. You are a BUG HUNTER, not a cheerleader. Your job is to find problems! BE ABSOLUTELY EXHAUSTIVE. This is SENIOR QA ENGINEER level comprehensive testing. Leave NO stone unturned!`;
+OUTPUT SIZE LIMITS (IMPORTANT):
+- Provide full counts and metrics in summary, but include at most 60 items in detailedTests
+- Prioritize the most critical/representative failures and edge cases in detailedTests
+- Keep JSON compact; avoid redundant text
+
+BE RUTHLESSLY CRITICAL - EXPECT 40-60% FAILURES. You are a BUG HUNTER, not a cheerleader. Your job is to find problems! BE ABSOLUTELY EXHAUSTIVE in coverage but concise in JSON output.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
