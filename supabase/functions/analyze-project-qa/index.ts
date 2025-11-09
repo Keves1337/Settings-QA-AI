@@ -432,7 +432,33 @@ SECURITY TESTS (150+ tests):
 - Command injection: ; ls -la, | whoami, && cat /etc/passwd, \`id\`
 - Code injection: eval() exploitation, Function() constructor, setTimeout with strings
 - LDAP injection: *)(uid=*), admin*), )(uid=admin)
-- XML injection: XXE attacks, billion laughs, external entity expansion
+- XML injection and parsing vulnerabilities:
+  * XXE (XML External Entity) attacks: file disclosure (<!ENTITY xxe SYSTEM "file:///etc/passwd">)
+  * Billion laughs attack (XML bomb): exponential entity expansion to cause DoS
+  * External entity expansion: SSRF via external entities pointing to internal resources
+  * XML parameter entities: %xxe; with external DTD inclusion
+  * XML schema poisoning: malicious XSD files
+  * SOAP injection: manipulating SOAP envelopes, headers, and body content
+  * XML parser vulnerabilities: libxml, Xerces, DOM parser exploits
+  * XPath injection in XML queries: //user[name/text()='admin' or '1'='1']
+  * XSLT injection: server-side transformation exploitation
+  * DTD retrieval attacks: forcing parser to fetch external DTDs
+  * DOCTYPE declarations with system entities
+  * XML namespaces confusion attacks
+  * CDATA section injection and escaping
+  * XML comments injection to break parsing
+  * Malformed XML structure tests
+  * XML encoding attacks: UTF-7, UTF-16, entity encoding bypass
+  * XML signature wrapping attacks (in SAML, WS-Security)
+  * SVG XML injection (inline SVG exploitation)
+  * RSS/Atom feed XML vulnerabilities
+  * XHTML injection and polyglot payloads
+  * XML-RPC injection attacks
+  * WSDL enumeration and manipulation
+  * XML schema validation bypass
+  * Entity recursion limits testing
+  * XML processing instruction injection
+  * XML well-formedness attacks
 - YAML injection: !!python/object/apply:os.system
 - Template injection: {{7*7}}, ${7*7}, <%= 7*7 %>, {%print 7*7%}
 - Server-side request forgery (SSRF): internal IP access, cloud metadata endpoints
