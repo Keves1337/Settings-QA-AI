@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,9 +7,10 @@ import { QATestReport } from "@/components/qa/QATestReport";
 import { TestExecutionDashboard } from "@/components/qa/TestExecutionDashboard";
 import { TestReportsLibrary } from "@/components/qa/TestReportsLibrary";
 import { FuzzTestingPanel } from "@/components/qa/FuzzTestingPanel";
-import { Sparkles, LogOut, Settings, Zap, FileCheck } from "lucide-react";
+import { Sparkles, LogOut, Settings, Zap, FileCheck, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const AutomatedQA = () => {
   const { toast } = useToast();
@@ -20,6 +21,51 @@ const AutomatedQA = () => {
   const [progress, setProgress] = useState(0);
   const [progressMessage, setProgressMessage] = useState('');
   const [tabValue, setTabValue] = useState<'upload' | 'report' | 'execution' | 'reports'>('upload');
+  const [lastError, setLastError] = useState<string | null>(null);
+  const [hasLastReport, setHasLastReport] = useState(false);
+
+  const STORAGE_KEY = 'qa_last_successful_report';
+
+  useEffect(() => {
+    // Check if we have a saved report
+    const saved = localStorage.getItem(STORAGE_KEY);
+    setHasLastReport(!!saved);
+  }, []);
+
+  const saveReportToStorage = (report: any) => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        report,
+        timestamp: new Date().toISOString()
+      }));
+      setHasLastReport(true);
+    } catch (e) {
+      console.error('Failed to save report to localStorage:', e);
+    }
+  };
+
+  const restoreLastReport = () => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const { report, timestamp } = JSON.parse(saved);
+        setQaReport(report);
+        setLastError(null);
+        setTabValue('report');
+        toast({
+          title: "Report Restored",
+          description: `Restored report from ${new Date(timestamp).toLocaleString()}`,
+        });
+      }
+    } catch (e) {
+      console.error('Failed to restore report:', e);
+      toast({
+        title: "Restore Failed",
+        description: "Could not restore the previous report",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -44,6 +90,7 @@ const AutomatedQA = () => {
     setUploadedFiles([]);
     setProgress(0);
     setProgressMessage('Starting analysis...');
+    setLastError(null);
 
     try {
       // Use streaming endpoint with progress updates
@@ -149,6 +196,8 @@ const AutomatedQA = () => {
       setProgress(100);
       setProgressMessage('Analysis complete!');
       setTabValue('report');
+      saveReportToStorage(finalData);
+      setLastError(null);
       
       const status = finalData.summary?.overallStatus || 'unknown';
       const statusMessages = {
@@ -165,6 +214,7 @@ const AutomatedQA = () => {
     } catch (error: any) {
       console.error('Error analyzing URL:', error);
       const errorMessage = error?.message || error?.error || "Failed to analyze URL. Please try again.";
+      setLastError(errorMessage);
       toast({
         title: "Error",
         description: errorMessage,
@@ -203,6 +253,7 @@ const AutomatedQA = () => {
     setQaReport(null);
     setProgress(0);
     setProgressMessage('Preparing files...');
+    setLastError(null);
 
     try {
       setProgress(10);
@@ -355,6 +406,8 @@ const AutomatedQA = () => {
       setProgress(100);
       setProgressMessage('Analysis complete!');
       setTabValue('report');
+      saveReportToStorage(data);
+      setLastError(null);
       
       const status = data.summary?.overallStatus || 'unknown';
       const statusMessages = {
@@ -371,6 +424,7 @@ const AutomatedQA = () => {
     } catch (error: any) {
       console.error('Error analyzing files:', error);
       const errorMessage = error?.message || error?.error || "Failed to analyze files. Please try again.";
+      setLastError(errorMessage);
       toast({
         title: "Error",
         description: errorMessage,
@@ -425,6 +479,26 @@ const AutomatedQA = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        {lastError && hasLastReport && (
+          <Alert className="mb-6 border-destructive/50 bg-destructive/10">
+            <AlertDescription className="flex items-center justify-between gap-4">
+              <div className="flex-1">
+                <p className="font-medium text-destructive mb-1">Analysis Failed</p>
+                <p className="text-sm text-muted-foreground">{lastError}</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={restoreLastReport}
+                className="flex-shrink-0 gap-2"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Restore Last Report
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <Tabs value={tabValue} onValueChange={(v) => setTabValue(v as any)} className="space-y-6">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="upload">Upload & Test</TabsTrigger>
