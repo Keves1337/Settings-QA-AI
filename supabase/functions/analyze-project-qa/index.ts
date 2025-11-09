@@ -763,6 +763,35 @@ BE ABSOLUTELY EXHAUSTIVE AND RUTHLESSLY CRITICAL. This is SENIOR QA ENGINEER lev
 
             controller.enqueue(encoder.encode(sendProgress(60, 'AI is analyzing your code...')));
 
+            let streamEnded = false;
+            const buildFallbackReport = () => ({
+              summary: {
+                totalFiles: filesToAnalyze.length,
+                criticalIssues: 0,
+                highPriorityIssues: 0,
+                warnings: 1,
+                passedChecks: 0,
+                overallStatus: 'warning'
+              },
+              criticalIssues: [],
+              highPriorityIssues: [],
+              warnings: [{ type: 'timeout', description: 'AI analysis timed out. This is a preliminary report based on fetched content.', location: filesToAnalyze[0]?.name || url || 'Unknown', recommendation: 'Retry analysis or analyze a smaller page/section.' }],
+              passedChecks: [],
+              detailedTests: [],
+              metadata: { source: filesToAnalyze[0]?.name || filesToAnalyze[0]?.path || url || 'Unknown', analyzedFiles: filesToAnalyze.length, totalLines: 0 }
+            });
+
+            const timeoutMs = 28000;
+            const timer = setTimeout(() => {
+              if (streamEnded) return;
+              streamEnded = true;
+              controller.enqueue(encoder.encode(sendProgress(95, 'AI timed out, creating preliminary report...')));
+              const fallback = buildFallbackReport();
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(fallback)}\n\n`));
+              controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+              controller.close();
+            }, timeoutMs);
+
             const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
               method: 'POST',
               headers: {
@@ -966,11 +995,15 @@ BE ABSOLUTELY EXHAUSTIVE AND RUTHLESSLY CRITICAL. This is SENIOR QA ENGINEER lev
             console.log('Report summary:', JSON.stringify(report.summary));
             console.log('Detailed tests count:', report.detailedTests?.length || 0);
             
-            controller.enqueue(encoder.encode(sendProgress(100, 'Complete!')));
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify(report)}\n\n`));
-            controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-            console.log('Final data sent, closing stream');
-            controller.close();
+            if (!streamEnded) {
+              clearTimeout(timer);
+              streamEnded = true;
+              controller.enqueue(encoder.encode(sendProgress(100, 'Complete!')));
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(report)}\n\n`));
+              controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+              console.log('Final data sent, closing stream');
+              controller.close();
+            }
           } catch (error: any) {
             console.error('Streaming error:', error);
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: error.message })}\n\n`));
