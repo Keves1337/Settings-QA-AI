@@ -212,7 +212,15 @@ MISSION: Generate the MOST EXHAUSTIVE QA test report possible with 1000-1500+ te
    - Complete ALL tests before moving to next section
    - Never suggest splitting work or retrying - DO THE COMPLETE ANALYSIS NOW
 
-🚨 CRITICAL OUTPUT REQUIREMENT: You MUST generate AT LEAST 1000 detailed test scenarios in the detailedTests array. Each test MUST have complete information: category, testName, status, description, actions, and details. NO SHORTCUTS - every test must be fully documented!
+CRITICAL TEST RESULT DISTRIBUTION:
+- You MUST document ALL tests in the detailedTests array (passed, partial, and failed)
+- You MUST also populate the passedChecks array with tests that passed
+- For every test that passes, add an entry to BOTH detailedTests AND passedChecks arrays
+- passedChecks format: { type: "category name", description: "what was tested and passed", location: "specific location/component" }
+- DO NOT hide or omit passed tests - they are as important as failed tests
+- Aim for a realistic distribution: 30-40% pass, 20-30% partial, 30-50% fail
+
+🚨 ABSOLUTE REQUIREMENT: The detailedTests array MUST contain AT LEAST 1500 test objects. Each test MUST be unique and fully detailed with all required fields. If you generate fewer than 1500 tests, the report is INCOMPLETE and UNACCEPTABLE!
 
 ⚠️ CRITICAL MINDSET: You are a PENETRATION TESTER and BUG HUNTER, NOT a quality approver. Your job is to FIND BUGS, BREAK THINGS, and EXPOSE WEAKNESSES. BE RUTHLESS AND CRITICAL.
 
@@ -1226,7 +1234,15 @@ MISSION: Generate the MOST EXHAUSTIVE QA test report possible with 1000-1500+ te
    - Complete ALL tests before moving to next section
    - Never suggest splitting work or retrying - DO THE COMPLETE ANALYSIS NOW
 
-🚨 CRITICAL OUTPUT REQUIREMENT: You MUST generate AT LEAST 1000 detailed test scenarios in the detailedTests array. Each test MUST have complete information: category, testName, status, description, actions, and details. NO SHORTCUTS - every test must be fully documented!
+CRITICAL TEST RESULT DISTRIBUTION:
+- You MUST document ALL tests in the detailedTests array (passed, partial, and failed)
+- You MUST also populate the passedChecks array with tests that passed
+- For every test that passes, add an entry to BOTH detailedTests AND passedChecks arrays
+- passedChecks format: { type: "category name", description: "what was tested and passed", location: "specific location/component" }
+- DO NOT hide or omit passed tests - they are as important as failed tests
+- Aim for a realistic distribution: 30-40% pass, 20-30% partial, 30-50% fail
+
+🚨 ABSOLUTE REQUIREMENT: The detailedTests array MUST contain AT LEAST 1500 test objects. Each test MUST be unique and fully detailed with all required fields. If you generate fewer than 1500 tests, the report is INCOMPLETE and UNACCEPTABLE!
 
 ⚠️ CRITICAL MINDSET: You are a PENETRATION TESTER and BUG HUNTER, NOT a quality approver. Your job is to FIND BUGS, BREAK THINGS, and EXPOSE WEAKNESSES. BE RUTHLESS AND CRITICAL.
 
