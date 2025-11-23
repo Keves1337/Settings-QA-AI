@@ -93,12 +93,28 @@ export const generateSTDReport = (reportData: QAReportData) => {
   doc.text(`Test Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, 14, 25);
   doc.text(`Tested By: Johnatan Milrad`, 14, 30);
   doc.text(`Test Source: ${metadata.source || 'N/A'}`, 14, 35);
-  doc.text(`Total Tests: ${testResults.length}`, 14, 40);
+  const rawPass = testResults.filter(r => r.status === 'pass').length;
+  const rawPartial = testResults.filter(r => r.status === 'partial').length;
+  const rawFail = testResults.filter(r => r.status === 'fail').length;
   
-  const passCount = testResults.filter(r => r.status === 'pass').length;
-  const partialCount = testResults.filter(r => r.status === 'partial').length;
-  const failCount = testResults.filter(r => r.status === 'fail').length;
-  const total = testResults.length || 1;
+  // If there are no detailed tests, fall back to summary-based distribution so the pie chart is still meaningful
+  let passCount = rawPass;
+  let partialCount = rawPartial;
+  let failCount = rawFail;
+  
+  if (testResults.length === 0) {
+    const issueFails = (reportData.summary.criticalIssues || 0) +
+      (reportData.summary.highPriorityIssues || 0) +
+      (reportData.summary.warnings || 0);
+    const issuePasses = reportData.summary.passedChecks || 0;
+    if (issueFails + issuePasses > 0) {
+      passCount = issuePasses;
+      failCount = issueFails;
+      partialCount = 0;
+    }
+  }
+  
+  const totalForChart = passCount + partialCount + failCount || 1;
   
   doc.text(`Pass: ${passCount} | Partial: ${partialCount} | Fail: ${failCount}`, 14, 45);
   
@@ -111,23 +127,24 @@ export const generateSTDReport = (reportData: QAReportData) => {
   doc.text(`High Priority: ${reportData.summary.highPriorityIssues}`, 20, 74);
   doc.text(`Warnings: ${reportData.summary.warnings}`, 20, 82);
   doc.text(`Passed Checks: ${reportData.summary.passedChecks}`, 20, 90);
-  doc.text(`Success Rate: ${((passCount / total) * 100).toFixed(1)}%`, 95, 58);
-  doc.text(`Total Tests: ${testResults.length}`, 95, 66);
+  const totalTests = testResults.length || totalForChart;
+  doc.text(`Success Rate: ${((passCount / totalForChart) * 100).toFixed(1)}%`, 95, 58);
+  doc.text(`Total Tests: ${totalTests}`, 95, 66);
   
-  // Draw Pie Chart (TestRail style) - positioned to the right
+  // Draw Pie Chart (TestRail style) - positioned lower-right to avoid overlap
   const chartX = 220;
-  const chartY = 72;
+  const chartY = 100;
   const radius = 22;
   
   // Calculate percentages
-  const passPerc = passCount / total;
-  const partialPerc = partialCount / total;
-  const failPerc = failCount / total;
+  const passPerc = passCount / totalForChart;
+  const partialPerc = partialCount / totalForChart;
+  const failPerc = failCount / totalForChart;
   
   // Chart title
   doc.setFontSize(11);
   doc.setTextColor(0, 0, 0);
-  doc.text('Test Results', chartX, 52, { align: 'center' });
+  doc.text('Test Results', chartX, 80, { align: 'center' });
   
   // Draw pie slices
   let startAngle = -Math.PI / 2; // Start at top (12 o'clock)
@@ -187,7 +204,81 @@ export const generateSTDReport = (reportData: QAReportData) => {
   doc.setTextColor(0, 0, 0);
   doc.text('SUMMARY ISSUES & FINDINGS', 148, 15, { align: 'center' });
   
-  let summaryY = 25;
+  // Pie chart for issue severity distribution at top of summary page
+  const issueTotal = (reportData.summary.criticalIssues || 0) +
+    (reportData.summary.highPriorityIssues || 0) +
+    (reportData.summary.warnings || 0) +
+    (reportData.summary.passedChecks || 0) || 1;
+  const critPerc = (reportData.summary.criticalIssues || 0) / issueTotal;
+  const highPerc = (reportData.summary.highPriorityIssues || 0) / issueTotal;
+  const warnPerc = (reportData.summary.warnings || 0) / issueTotal;
+  const passedPerc = (reportData.summary.passedChecks || 0) / issueTotal;
+  
+  const issueChartX = 60;
+  const issueChartY = 55;
+  const issueRadius = 22;
+  
+  doc.setFontSize(11);
+  doc.text('Issue Severity', issueChartX, 30, { align: 'center' });
+  
+  let issueStart = -Math.PI / 2;
+  
+  // Critical - red
+  if (critPerc > 0) {
+    const end = issueStart + critPerc * 2 * Math.PI;
+    doc.setFillColor(239, 68, 68);
+    drawPieSlice(doc, issueChartX, issueChartY, issueRadius, issueStart, end);
+    issueStart = end;
+  }
+  // High Priority - orange
+  if (highPerc > 0) {
+    const end = issueStart + highPerc * 2 * Math.PI;
+    doc.setFillColor(249, 115, 22);
+    drawPieSlice(doc, issueChartX, issueChartY, issueRadius, issueStart, end);
+    issueStart = end;
+  }
+  // Warnings - yellow
+  if (warnPerc > 0) {
+    const end = issueStart + warnPerc * 2 * Math.PI;
+    doc.setFillColor(234, 179, 8);
+    drawPieSlice(doc, issueChartX, issueChartY, issueRadius, issueStart, end);
+    issueStart = end;
+  }
+  // Passed checks - green
+  if (passedPerc > 0) {
+    const end = issueStart + passedPerc * 2 * Math.PI;
+    doc.setFillColor(34, 197, 94);
+    drawPieSlice(doc, issueChartX, issueChartY, issueRadius, issueStart, end);
+  }
+  
+  // Chart border
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.5);
+  doc.circle(issueChartX, issueChartY, issueRadius, 'S');
+  
+  // Legend to the right of issue chart
+  const issueLegendX = issueChartX + issueRadius + 10;
+  const issueLegendY = issueChartY - 10;
+  doc.setFontSize(8);
+  doc.setTextColor(0, 0, 0);
+  
+  doc.setFillColor(239, 68, 68);
+  doc.rect(issueLegendX, issueLegendY, 4, 4, 'F');
+  doc.text(`Critical: ${reportData.summary.criticalIssues}`, issueLegendX + 6, issueLegendY + 3);
+  
+  doc.setFillColor(249, 115, 22);
+  doc.rect(issueLegendX, issueLegendY + 6, 4, 4, 'F');
+  doc.text(`High: ${reportData.summary.highPriorityIssues}`, issueLegendX + 6, issueLegendY + 9);
+  
+  doc.setFillColor(234, 179, 8);
+  doc.rect(issueLegendX, issueLegendY + 12, 4, 4, 'F');
+  doc.text(`Warnings: ${reportData.summary.warnings}`, issueLegendX + 6, issueLegendY + 15);
+  
+  doc.setFillColor(34, 197, 94);
+  doc.rect(issueLegendX, issueLegendY + 18, 4, 4, 'F');
+  doc.text(`Passed: ${reportData.summary.passedChecks}`, issueLegendX + 6, issueLegendY + 21);
+  
+  let summaryY = 85;
   
   // Critical Issues Section
   if (reportData.criticalIssues.length > 0) {
