@@ -290,7 +290,7 @@ CRITICAL TEST RESULT DISTRIBUTION:
 - DO NOT hide or omit passed tests - they are as important as failed tests
 - Aim for a realistic distribution: 30-40% pass, 20-30% partial, 30-50% fail
 
-🚨 ABSOLUTE REQUIREMENT: The detailedTests array MUST contain AT LEAST 1500 test objects. Each test MUST be unique and fully detailed with all required fields. If you generate fewer than 1500 tests, the report is INCOMPLETE and UNACCEPTABLE!
+🚨 ABSOLUTE REQUIREMENT: The detailedTests array MUST contain AT LEAST 200 test objects. Each test MUST be unique and fully detailed with all required fields. More importantly, the summary counts MUST EXACTLY MATCH the detailed arrays - if you list 515 criticalIssues in summary, you MUST have 515 items in the criticalIssues array!
 
 ⚠️ CRITICAL MINDSET: You are a PENETRATION TESTER and BUG HUNTER, NOT a quality approver. Your job is to FIND BUGS, BREAK THINGS, and EXPOSE WEAKNESSES. BE RUTHLESS AND CRITICAL.
 
@@ -328,17 +328,17 @@ CRITICAL TEST RESULT DISTRIBUTION:
 - Poor performance (slow load times, memory leaks - mark as fail)
 
 CATEGORIES - Distribute tests across ALL categories (YOU MUST MEET THESE MINIMUMS - this is not optional):
-1. SANITY TESTS (200+ tests): Basic smoke tests, critical path verification, essential functionality checks, core feature validation
-2. FUNCTIONALITY TESTS (300+ tests): Every feature, button, input, action, workflow, state change, navigation, forms
-3. SECURITY TESTS (200+ tests): SQL injection, XSS, CSRF, authentication bypass, authorization, encryption, API security, token manipulation
-4. ACCESSIBILITY TESTS (150+ tests): Screen readers, keyboard navigation, ARIA, color contrast, focus management, WCAG AAA compliance
-5. PERFORMANCE TESTS (150+ tests): Load times, memory usage, large datasets, concurrent users, slow networks, caching, optimization
-6. COMPATIBILITY TESTS (100+ tests): Browsers (Chrome, Firefox, Safari, Edge, mobile browsers), devices, screen sizes, OS versions
-7. DATA VALIDATION TESTS (150+ tests): Input formats, SQL injection strings, XSS payloads, unicode, emojis, RTL text, special characters
-8. EDGE CASES (150+ tests): Boundary values, null/undefined, empty strings, maximum lengths, negative numbers, floating point precision
-9. USER EXPERIENCE TESTS (100+ tests): UI responsiveness, animations, loading states, error messages, tooltips, navigation flows
-10. ERROR HANDLING TESTS (100+ tests): Network failures, timeouts, 404s, 500s, validation errors, exception handling
-11. BIZARRE/UNUSUAL TESTS (100+ tests): Extremely rare scenarios, weird edge cases, unusual user behaviors, chaotic inputs, unexpected sequences, bizarre combinations, uncommon device configurations, unusual timing scenarios, rare race conditions, strange data patterns
+1. SANITY TESTS (30+ tests): Basic smoke tests, critical path verification, essential functionality checks, core feature validation
+2. FUNCTIONALITY TESTS (40+ tests): Every feature, button, input, action, workflow, state change, navigation, forms
+3. SECURITY TESTS (30+ tests): SQL injection, XSS, CSRF, authentication bypass, authorization, encryption, API security, token manipulation
+4. ACCESSIBILITY TESTS (25+ tests): Screen readers, keyboard navigation, ARIA, color contrast, focus management, WCAG AAA compliance
+5. PERFORMANCE TESTS (20+ tests): Load times, memory usage, large datasets, concurrent users, slow networks, caching, optimization
+6. COMPATIBILITY TESTS (15+ tests): Browsers (Chrome, Firefox, Safari, Edge, mobile browsers), devices, screen sizes, OS versions
+7. DATA VALIDATION TESTS (20+ tests): Input formats, SQL injection strings, XSS payloads, unicode, emojis, RTL text, special characters
+8. EDGE CASES (20+ tests): Boundary values, null/undefined, empty strings, maximum lengths, negative numbers, floating point precision
+9. USER EXPERIENCE TESTS (15+ tests): UI responsiveness, animations, loading states, error messages, tooltips, navigation flows
+10. ERROR HANDLING TESTS (15+ tests): Network failures, timeouts, 404s, 500s, validation errors, exception handling
+11. BIZARRE/UNUSUAL TESTS (10+ tests): Extremely rare scenarios, weird edge cases, unusual user behaviors, chaotic inputs, unexpected sequences, bizarre combinations, uncommon device configurations, unusual timing scenarios, rare race conditions, strange data patterns
 
 🚨 ABSOLUTE REQUIREMENT: The detailedTests array MUST contain AT LEAST 1500 test objects. Each test object MUST be unique and fully detailed with all required fields. If you generate fewer than 1500 tests, the report is INCOMPLETE and UNACCEPTABLE!
 
@@ -846,7 +846,7 @@ BIZARRE/UNUSUAL TESTS (50+ tests) - Extremely rare and unusual scenarios:
 - Simulating physical damage: stuck pixels, dead zones on touchscreen, broken sensors
 
 TEST GENERATION RULES:
-1. Generate 800-1000+ UNIQUE, SPECIFIC test scenarios across all categories
+1. Generate 200-300 UNIQUE, SPECIFIC test scenarios across all categories
 2. Be EXTREMELY DETAILED in descriptions, actions, and findings
 3. Include technical details: response codes, error messages, console logs, performance metrics
 4. Cover EVERY input field, button, link, form, API endpoint visible in the code
@@ -860,6 +860,7 @@ TEST GENERATION RULES:
 12. When you see missing validation, error handling, security checks - MARK AS FAIL
 13. When you see potential vulnerabilities or bad practices - MARK AS FAIL
 14. Be a BUG HUNTER, not a cheerleader - your job is to find problems
+15. CRITICAL: Summary counts MUST match array lengths - if summary says 50 criticalIssues, the criticalIssues array MUST have exactly 50 items!
 
 OUTPUT FORMAT for EACH test:
 {
@@ -878,10 +879,10 @@ STATUS GUIDELINES (BE CRITICAL):
 - REMEMBER: A good QA report has many failures - that's how bugs get fixed!
 
 CRITICAL REQUIREMENTS:
-- MINIMUM 800 tests, TARGET 1000+ tests
+- MINIMUM 200 tests, TARGET 250+ tests
 - Distribute evenly across all 11 categories (including Bizarre/Unusual)
-- Include at least 150 sanity tests as smoke tests
-- Include at least 50 bizarre/unusual tests
+- Include at least 30 sanity tests as smoke tests
+- Include at least 10 bizarre/unusual tests
 - Every test must be DETAILED and SPECIFIC
 - No generic or vague test descriptions
 - Include exact technical details in findings
@@ -890,10 +891,11 @@ CRITICAL REQUIREMENTS:
 - Mark tests as FAIL when you find issues - don't be lenient
 - You are a BUG HUNTER, not a quality approver
 - The goal is to FIND PROBLEMS, not to validate that everything works
+- CRITICAL: Each item in criticalIssues, highPriorityIssues, warnings, and passedChecks arrays MUST also have a corresponding entry in detailedTests with full details
 
 BE ABSOLUTELY EXHAUSTIVE AND RUTHLESSLY CRITICAL. This is SENIOR QA ENGINEER level work. Your reputation depends on finding bugs that others miss!
 
-FINAL REMINDER: You MUST generate AT LEAST 1500 test objects in detailedTests. Count them. If you have fewer than 1500, keep generating more until you reach the minimum. This is NON-NEGOTIABLE!`;
+FINAL REMINDER: Summary counts MUST EXACTLY MATCH array lengths! If summary.criticalIssues = 50, then criticalIssues array length = 50, and those 50 issues also appear in detailedTests with status='fail'. Count your arrays before returning!`;
 
             controller.enqueue(encoder.encode(sendProgress(60, 'AI is analyzing your code...')));
 
@@ -1382,7 +1384,7 @@ CRITICAL TEST RESULT DISTRIBUTION:
 - DO NOT hide or omit passed tests - they are as important as failed tests
 - Aim for a realistic distribution: 30-40% pass, 20-30% partial, 30-50% fail
 
-🚨 ABSOLUTE REQUIREMENT: The detailedTests array MUST contain AT LEAST 1500 test objects. Each test MUST be unique and fully detailed with all required fields. If you generate fewer than 1500 tests, the report is INCOMPLETE and UNACCEPTABLE!
+🚨 ABSOLUTE REQUIREMENT: The detailedTests array MUST contain AT LEAST 200 test objects. Each test MUST be unique and fully detailed with all required fields. More importantly, the summary counts MUST EXACTLY MATCH the detailed arrays - if you list 515 criticalIssues in summary, you MUST have 515 items in the criticalIssues array!
 
 ⚠️ CRITICAL MINDSET: You are a PENETRATION TESTER and BUG HUNTER, NOT a quality approver. Your job is to FIND BUGS, BREAK THINGS, and EXPOSE WEAKNESSES. BE RUTHLESS AND CRITICAL.
 
@@ -1420,25 +1422,25 @@ CRITICAL TEST RESULT DISTRIBUTION:
 - Poor performance (slow load times, memory leaks - mark as fail)
 
 CATEGORIES - Distribute tests across ALL categories (YOU MUST MEET THESE MINIMUMS - this is not optional):
-1. SANITY TESTS (200+ tests): Basic smoke tests, critical path verification, essential functionality checks, core feature validation
-2. FUNCTIONALITY TESTS (300+ tests): Every feature, button, input, action, workflow, state change, navigation, forms
-3. SECURITY TESTS (200+ tests): SQL injection, XSS, CSRF, authentication bypass, authorization, encryption, API security, token manipulation
-4. ACCESSIBILITY TESTS (150+ tests): Screen readers, keyboard navigation, ARIA, color contrast, focus management, WCAG AAA compliance
-5. PERFORMANCE TESTS (150+ tests): Load times, memory usage, large datasets, concurrent users, slow networks, caching, optimization
-6. COMPATIBILITY TESTS (100+ tests): Browsers (Chrome, Firefox, Safari, Edge, mobile browsers), devices, screen sizes, OS versions
-7. DATA VALIDATION TESTS (150+ tests): Input formats, SQL injection strings, XSS payloads, unicode, emojis, RTL text, special characters
-8. EDGE CASES (150+ tests): Boundary values, null/undefined, empty strings, maximum lengths, negative numbers, floating point precision
-9. USER EXPERIENCE TESTS (100+ tests): UI responsiveness, animations, loading states, error messages, tooltips, navigation flows
-10. ERROR HANDLING TESTS (100+ tests): Network failures, timeouts, 404s, 500s, validation errors, exception handling
-11. BIZARRE/UNUSUAL TESTS (100+ tests): Extremely rare scenarios, weird edge cases, unusual user behaviors, chaotic inputs, unexpected sequences, bizarre combinations, uncommon device configurations, unusual timing scenarios, rare race conditions, strange data patterns
+1. SANITY TESTS (30+ tests): Basic smoke tests, critical path verification, essential functionality checks, core feature validation
+2. FUNCTIONALITY TESTS (40+ tests): Every feature, button, input, action, workflow, state change, navigation, forms
+3. SECURITY TESTS (30+ tests): SQL injection, XSS, CSRF, authentication bypass, authorization, encryption, API security, token manipulation
+4. ACCESSIBILITY TESTS (25+ tests): Screen readers, keyboard navigation, ARIA, color contrast, focus management, WCAG AAA compliance
+5. PERFORMANCE TESTS (20+ tests): Load times, memory usage, large datasets, concurrent users, slow networks, caching, optimization
+6. COMPATIBILITY TESTS (15+ tests): Browsers (Chrome, Firefox, Safari, Edge, mobile browsers), devices, screen sizes, OS versions
+7. DATA VALIDATION TESTS (20+ tests): Input formats, SQL injection strings, XSS payloads, unicode, emojis, RTL text, special characters
+8. EDGE CASES (20+ tests): Boundary values, null/undefined, empty strings, maximum lengths, negative numbers, floating point precision
+9. USER EXPERIENCE TESTS (15+ tests): UI responsiveness, animations, loading states, error messages, tooltips, navigation flows
+10. ERROR HANDLING TESTS (15+ tests): Network failures, timeouts, 404s, 500s, validation errors, exception handling
+11. BIZARRE/UNUSUAL TESTS (10+ tests): Extremely rare scenarios, weird edge cases, unusual user behaviors, chaotic inputs, unexpected sequences, bizarre combinations, uncommon device configurations, unusual timing scenarios, rare race conditions, strange data patterns
 
-🚨 ABSOLUTE REQUIREMENT: The detailedTests array MUST contain AT LEAST 1500 test objects. Each test object MUST be unique and fully detailed with all required fields. If you generate fewer than 1500 tests, the report is INCOMPLETE and UNACCEPTABLE!
+🚨 ABSOLUTE REQUIREMENT: The detailedTests array MUST contain AT LEAST 200 test objects. Each test object MUST be unique and fully detailed with all required fields. More importantly, summary counts MUST EXACTLY MATCH array lengths!
 
-Generate 1500+ UNIQUE, SPECIFIC, DETAILED test scenarios with exact steps, expected results, actual results, and technical findings. Run each test scenario ONCE with clear, detailed results.
+Generate 200-300 UNIQUE, SPECIFIC, DETAILED test scenarios with exact steps, expected results, actual results, and technical findings. Run each test scenario ONCE with clear, detailed results.
 
 BE RUTHLESSLY CRITICAL - EXPECT 40-60% FAILURES. You are a BUG HUNTER, not a cheerleader. Your job is to find problems! BE ABSOLUTELY EXHAUSTIVE. This is SENIOR QA ENGINEER level comprehensive testing. Leave NO stone unturned!
 
-FINAL REMINDER: You MUST generate AT LEAST 1500 test objects in detailedTests. Count them. If you have fewer than 1500, keep generating more until you reach the minimum. This is NON-NEGOTIABLE!`;
+FINAL REMINDER: Summary counts MUST EXACTLY MATCH array lengths! If summary.criticalIssues = 50, then criticalIssues array length = 50, and those 50 issues also appear in detailedTests with status='fail'. Count your arrays before returning!`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
