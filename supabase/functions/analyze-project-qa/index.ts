@@ -230,7 +230,7 @@ serve(async (req) => {
             // Construct system prompt (same as non-streaming)
             const systemPrompt = `You are a SENIOR QA TESTING SPECIALIST with 15+ years of experience conducting the MOST COMPREHENSIVE quality assurance audit possible.
 
-MISSION: Generate the MOST EXHAUSTIVE QA test report possible with 1000-1500+ test scenarios. YOU MUST test EVERY SINGLE POSSIBLE scenario, edge case, and bizarre test imaginable. Run each test scenario ONCE with EXTREMELY detailed results including specific actions taken, expected behavior, actual behavior, and technical findings.
+MISSION: Generate a COMPREHENSIVE QA test report with 200-300 test scenarios covering all major areas. YOU MUST test all critical scenarios, common edge cases, and important functionality. Run each test scenario ONCE with detailed results including specific actions taken, expected behavior, actual behavior, and technical findings.
 
 🚨 CRITICAL INSTRUCTIONS FOR TESTING:
 
@@ -289,8 +289,16 @@ CRITICAL TEST RESULT DISTRIBUTION:
 - passedChecks format: { type: "category name", description: "what was tested and passed", location: "specific location/component" }
 - DO NOT hide or omit passed tests - they are as important as failed tests
 - Aim for a realistic distribution: 30-40% pass, 20-30% partial, 30-50% fail
+- NEVER return empty arrays - always document your test results
+- If a page is "perfect", you should have 200+ PASS entries, not 0 entries
 
-🚨 ABSOLUTE REQUIREMENT: The detailedTests array MUST contain AT LEAST 200 test objects. Each test MUST be unique and fully detailed with all required fields. More importantly, the summary counts MUST EXACTLY MATCH the detailed arrays - if you list 515 criticalIssues in summary, you MUST have 515 items in the criticalIssues array!
+🚨 ABSOLUTE REQUIREMENT: 
+- The detailedTests array MUST contain AT LEAST 200 test objects
+- You MUST generate tests for EVERYTHING you analyze - both what passes AND what fails
+- An empty detailedTests array is NEVER acceptable - even a perfect page needs documented test results
+- If something works correctly, mark it as "pass" - DO NOT skip testing it
+- Summary counts MUST EXACTLY MATCH array lengths
+- Example: If you test 50 buttons and they all work, you should have 50 "pass" entries in detailedTests AND passedChecks
 
 ⚠️ CRITICAL MINDSET: You are a PENETRATION TESTER and BUG HUNTER, NOT a quality approver. Your job is to FIND BUGS, BREAK THINGS, and EXPOSE WEAKNESSES. BE RUTHLESS AND CRITICAL.
 
@@ -895,7 +903,12 @@ CRITICAL REQUIREMENTS:
 
 BE ABSOLUTELY EXHAUSTIVE AND RUTHLESSLY CRITICAL. This is SENIOR QA ENGINEER level work. Your reputation depends on finding bugs that others miss!
 
-FINAL REMINDER: Summary counts MUST EXACTLY MATCH array lengths! If summary.criticalIssues = 50, then criticalIssues array length = 50, and those 50 issues also appear in detailedTests with status='fail'. Count your arrays before returning!`;
+FINAL REMINDER: 
+- You MUST generate AT LEAST 200 tests - empty arrays are NEVER acceptable
+- Document ALL tests (pass, partial, fail) - not just failures
+- Summary counts MUST EXACTLY MATCH array lengths
+- If summary.passedChecks = 50, then passedChecks array length = 50
+- Count your arrays before returning to ensure they match!`;
 
             controller.enqueue(encoder.encode(sendProgress(60, 'AI is analyzing your code...')));
 
@@ -1324,7 +1337,7 @@ FINAL REMINDER: Summary counts MUST EXACTLY MATCH array lengths! If summary.crit
 
     const systemPrompt = `You are a SENIOR QA TESTING SPECIALIST with 15+ years of experience conducting the MOST COMPREHENSIVE quality assurance audit possible.
 
-MISSION: Generate the MOST EXHAUSTIVE QA test report possible with 1000-1500+ test scenarios. YOU MUST test EVERY SINGLE POSSIBLE scenario, edge case, and bizarre test imaginable. Run each test scenario ONCE with EXTREMELY detailed results including specific actions taken, expected behavior, actual behavior, and technical findings.
+MISSION: Generate a COMPREHENSIVE QA test report with 200-300 test scenarios covering all major areas. YOU MUST test all critical scenarios, common edge cases, and important functionality. Run each test scenario ONCE with detailed results including specific actions taken, expected behavior, actual behavior, and technical findings.
 
 🚨 CRITICAL INSTRUCTIONS FOR TESTING:
 
@@ -1383,8 +1396,16 @@ CRITICAL TEST RESULT DISTRIBUTION:
 - passedChecks format: { type: "category name", description: "what was tested and passed", location: "specific location/component" }
 - DO NOT hide or omit passed tests - they are as important as failed tests
 - Aim for a realistic distribution: 30-40% pass, 20-30% partial, 30-50% fail
+- NEVER return empty arrays - always document your test results
+- If a page is "perfect", you should have 200+ PASS entries, not 0 entries
 
-🚨 ABSOLUTE REQUIREMENT: The detailedTests array MUST contain AT LEAST 200 test objects. Each test MUST be unique and fully detailed with all required fields. More importantly, the summary counts MUST EXACTLY MATCH the detailed arrays - if you list 515 criticalIssues in summary, you MUST have 515 items in the criticalIssues array!
+🚨 ABSOLUTE REQUIREMENT:
+- The detailedTests array MUST contain AT LEAST 200 test objects
+- You MUST generate tests for EVERYTHING you analyze - both what passes AND what fails
+- An empty detailedTests array is NEVER acceptable - even a perfect page needs documented test results
+- If something works correctly, mark it as "pass" - DO NOT skip testing it
+- Summary counts MUST EXACTLY MATCH array lengths
+- Example: If you test 50 buttons and they all work, you should have 50 "pass" entries in detailedTests AND passedChecks
 
 ⚠️ CRITICAL MINDSET: You are a PENETRATION TESTER and BUG HUNTER, NOT a quality approver. Your job is to FIND BUGS, BREAK THINGS, and EXPOSE WEAKNESSES. BE RUTHLESS AND CRITICAL.
 
@@ -1440,7 +1461,12 @@ Generate 200-300 UNIQUE, SPECIFIC, DETAILED test scenarios with exact steps, exp
 
 BE RUTHLESSLY CRITICAL - EXPECT 40-60% FAILURES. You are a BUG HUNTER, not a cheerleader. Your job is to find problems! BE ABSOLUTELY EXHAUSTIVE. This is SENIOR QA ENGINEER level comprehensive testing. Leave NO stone unturned!
 
-FINAL REMINDER: Summary counts MUST EXACTLY MATCH array lengths! If summary.criticalIssues = 50, then criticalIssues array length = 50, and those 50 issues also appear in detailedTests with status='fail'. Count your arrays before returning!`;
+FINAL REMINDER:
+- You MUST generate AT LEAST 200 tests - empty arrays are NEVER acceptable
+- Document ALL tests (pass, partial, fail) - not just failures
+- Summary counts MUST EXACTLY MATCH array lengths
+- If summary.passedChecks = 50, then passedChecks array length = 50
+- Count your arrays before returning to ensure they match!`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
