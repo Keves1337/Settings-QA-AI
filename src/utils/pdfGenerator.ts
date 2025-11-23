@@ -61,6 +61,34 @@ const getStatusText = (status: string): string => {
   }
 };
 
+const drawPieSlice = (doc: jsPDF, cx: number, cy: number, radius: number, startAngle: number, endAngle: number) => {
+  doc.saveGraphicsState();
+  
+  // Move to center
+  doc.moveTo(cx, cy);
+  
+  // Draw arc using lines (approximation)
+  const steps = Math.max(10, Math.ceil(Math.abs(endAngle - startAngle) * radius));
+  
+  for (let i = 0; i <= steps; i++) {
+    const angle = startAngle + (endAngle - startAngle) * (i / steps);
+    const x = cx + radius * Math.cos(angle);
+    const y = cy + radius * Math.sin(angle);
+    
+    if (i === 0) {
+      doc.line(cx, cy, x, y);
+    } else {
+      doc.lineTo(x, y);
+    }
+  }
+  
+  // Close path back to center
+  doc.lineTo(cx, cy);
+  doc.fill();
+  
+  doc.restoreGraphicsState();
+};
+
 export const generateSTDReport = (reportData: QAReportData) => {
   const testResults = reportData.detailedTests || [];
   const metadata = reportData.metadata || {};
@@ -84,16 +112,85 @@ export const generateSTDReport = (reportData: QAReportData) => {
   
   doc.text(`Pass: ${passCount} | Partial: ${partialCount} | Fail: ${failCount}`, 14, 45);
   
+  // Draw Pie Chart (TestRail style)
+  const chartX = 220;
+  const chartY = 75;
+  const radius = 30;
+  
+  // Calculate percentages
+  const total = testResults.length || 1;
+  const passPerc = passCount / total;
+  const partialPerc = partialCount / total;
+  const failPerc = failCount / total;
+  
+  // Draw pie slices
+  let startAngle = -Math.PI / 2; // Start at top (12 o'clock)
+  
+  // Pass slice (green)
+  if (passPerc > 0) {
+    const endAngle = startAngle + (passPerc * 2 * Math.PI);
+    doc.setFillColor(34, 197, 94);
+    drawPieSlice(doc, chartX, chartY, radius, startAngle, endAngle);
+    startAngle = endAngle;
+  }
+  
+  // Partial slice (yellow)
+  if (partialPerc > 0) {
+    const endAngle = startAngle + (partialPerc * 2 * Math.PI);
+    doc.setFillColor(234, 179, 8);
+    drawPieSlice(doc, chartX, chartY, radius, startAngle, endAngle);
+    startAngle = endAngle;
+  }
+  
+  // Fail slice (red)
+  if (failPerc > 0) {
+    const endAngle = startAngle + (failPerc * 2 * Math.PI);
+    doc.setFillColor(239, 68, 68);
+    drawPieSlice(doc, chartX, chartY, radius, startAngle, endAngle);
+  }
+  
+  // Chart border
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.5);
+  doc.circle(chartX, chartY, radius, 'S');
+  
+  // Legend
+  const legendX = chartX + radius + 10;
+  const legendY = chartY - 20;
+  
+  // Pass legend
+  doc.setFillColor(34, 197, 94);
+  doc.rect(legendX, legendY, 5, 5, 'F');
+  doc.setFontSize(9);
+  doc.setTextColor(0, 0, 0);
+  doc.text(`Pass: ${passCount} (${(passPerc * 100).toFixed(1)}%)`, legendX + 7, legendY + 4);
+  
+  // Partial legend
+  doc.setFillColor(234, 179, 8);
+  doc.rect(legendX, legendY + 8, 5, 5, 'F');
+  doc.text(`Partial: ${partialCount} (${(partialPerc * 100).toFixed(1)}%)`, legendX + 7, legendY + 12);
+  
+  // Fail legend
+  doc.setFillColor(239, 68, 68);
+  doc.rect(legendX, legendY + 16, 5, 5, 'F');
+  doc.text(`Fail: ${failCount} (${(failPerc * 100).toFixed(1)}%)`, legendX + 7, legendY + 20);
+  
+  // Chart title
+  doc.setFontSize(11);
+  doc.setTextColor(0, 0, 0);
+  doc.text('Test Results Distribution', chartX, chartY + radius + 10, { align: 'center' });
+  
   // Summary stats from report data
   doc.setFillColor(240, 240, 240);
-  doc.rect(14, 50, 270, 20, 'F');
+  doc.rect(14, 50, 180, 45, 'F');
   doc.setFontSize(12);
   doc.text(`Overall Status: ${reportData.summary.overallStatus.toUpperCase()}`, 20, 58);
-  doc.text(`Critical Issues: ${reportData.summary.criticalIssues}`, 100, 58);
-  doc.text(`High Priority: ${reportData.summary.highPriorityIssues}`, 160, 58);
-  doc.text(`Warnings: ${reportData.summary.warnings}`, 220, 58);
-  doc.text(`Passed Checks: ${reportData.summary.passedChecks}`, 20, 66);
-  doc.text(`Success Rate: ${((passCount / (testResults.length || 1)) * 100).toFixed(1)}%`, 100, 66);
+  doc.text(`Critical Issues: ${reportData.summary.criticalIssues}`, 20, 66);
+  doc.text(`High Priority: ${reportData.summary.highPriorityIssues}`, 20, 74);
+  doc.text(`Warnings: ${reportData.summary.warnings}`, 20, 82);
+  doc.text(`Passed Checks: ${reportData.summary.passedChecks}`, 20, 90);
+  doc.text(`Success Rate: ${((passCount / total) * 100).toFixed(1)}%`, 110, 58);
+  doc.text(`Total Tests: ${testResults.length}`, 110, 66);
   
   // Add SUMMARY ISSUES section (Critical, High Priority, Warnings, Passed)
   doc.addPage();
