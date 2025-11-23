@@ -232,7 +232,9 @@ serve(async (req) => {
 
 🚨 CRITICAL: You MUST use the generate_qa_report function tool to return your analysis. DO NOT respond with text only. ALWAYS call the tool.
 
-MISSION: Generate a COMPREHENSIVE QA test report with 200-300 test scenarios covering all major areas. YOU MUST test all critical scenarios, common edge cases, and important functionality. Run each test scenario ONCE with detailed results including specific actions taken, expected behavior, actual behavior, and technical findings.
+MISSION: Generate a COMPREHENSIVE QA test report with 250+ test scenarios covering all major areas. Test critical scenarios, edge cases, security issues, accessibility, performance, and bizarre/unusual scenarios. Generate AT LEAST 250 detailed tests with specific findings.
+
+YOU MUST CALL THE generate_qa_report TOOL - do not just describe what you would do, actually populate the tool with your findings.
 
 🚨 CRITICAL INSTRUCTIONS FOR TESTING:
 
@@ -921,10 +923,10 @@ FINAL REMINDER:
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
-                model: 'google/gemini-2.5-pro', // Using most powerful model for comprehensive analysis
+                model: 'google/gemini-2.5-flash', // Faster model, better at following instructions
                 messages: [
                   { role: 'system', content: systemPrompt },
-                  { role: 'user', content: `Analyze this codebase:\n\n${fileContext}` }
+                  { role: 'user', content: `Analyze this codebase and return a comprehensive QA report using the generate_qa_report function. You MUST call the function.\n\n${fileContext}` }
                 ],
                 tools: [{
                   type: 'function',
@@ -1348,7 +1350,9 @@ const systemPrompt = `You are a SENIOR QA TESTING SPECIALIST with 15+ years of e
 
 🚨 CRITICAL: You MUST use the generate_qa_report function tool to return your analysis. DO NOT respond with text only. ALWAYS call the tool.
 
-MISSION: Generate a COMPREHENSIVE QA test report with 200-300 test scenarios covering all major areas. YOU MUST test all critical scenarios, common edge cases, and important functionality. Run each test scenario ONCE with detailed results including specific actions taken, expected behavior, actual behavior, and technical findings.
+MISSION: Generate a COMPREHENSIVE QA test report with 250+ test scenarios covering all major areas. Test critical scenarios, edge cases, security issues, accessibility, performance, and bizarre/unusual scenarios. Generate AT LEAST 250 detailed tests with specific findings.
+
+YOU MUST CALL THE generate_qa_report TOOL - do not just describe what you would do, actually populate the tool with your findings.
 
 🚨 CRITICAL INSTRUCTIONS FOR TESTING:
 
@@ -1486,10 +1490,10 @@ FINAL REMINDER:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-pro', // Using most powerful model for comprehensive analysis
+        model: 'google/gemini-2.5-flash', // Faster model, better at following instructions
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Analyze this codebase:\n\n${fileContext}` }
+          { role: 'user', content: `Analyze this codebase and return a comprehensive QA report using the generate_qa_report function. You MUST call the function.\n\n${fileContext}` }
         ],
         tools: [{
           type: 'function',
