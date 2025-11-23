@@ -21,8 +21,8 @@ interface LoadTestResult {
 
 export const LoadTestingPanel = () => {
   const [url, setUrl] = useState("");
-  const [totalRequests, setTotalRequests] = useState(100);
-  const [concurrentRequests, setConcurrentRequests] = useState(10);
+  const totalRequests = 1000; // Maximum allowed
+  const concurrentRequests = 50; // Maximum allowed
   const [isRunning, setIsRunning] = useState(false);
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState<LoadTestResult | null>(null);
@@ -93,31 +93,17 @@ export const LoadTestingPanel = () => {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="total-requests">Total Requests</Label>
-              <Input
-                id="total-requests"
-                type="number"
-                min="1"
-                max="1000"
-                value={totalRequests}
-                onChange={(e) => setTotalRequests(parseInt(e.target.value) || 100)}
-                disabled={isRunning}
-              />
+          <div className="p-4 rounded-lg bg-muted">
+            <div className="text-sm text-muted-foreground mb-1">
+              Test Configuration (Maximum Load)
             </div>
-
-            <div>
-              <Label htmlFor="concurrent-requests">Concurrent Requests</Label>
-              <Input
-                id="concurrent-requests"
-                type="number"
-                min="1"
-                max="50"
-                value={concurrentRequests}
-                onChange={(e) => setConcurrentRequests(parseInt(e.target.value) || 10)}
-                disabled={isRunning}
-              />
+            <div className="flex justify-between items-center">
+              <span className="font-semibold">Total Requests:</span>
+              <span className="text-primary font-bold">1,000</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="font-semibold">Concurrent Requests:</span>
+              <span className="text-primary font-bold">50</span>
             </div>
           </div>
 
@@ -126,7 +112,7 @@ export const LoadTestingPanel = () => {
             disabled={isRunning}
             className="w-full"
           >
-            {isRunning ? "Running Test..." : "Start Load Test"}
+            {isRunning ? "Running Maximum Load Test..." : "Start Maximum Load Test"}
           </Button>
 
           {isRunning && (
