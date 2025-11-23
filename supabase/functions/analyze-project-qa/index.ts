@@ -1116,10 +1116,10 @@ FINAL REMINDER:
                 criticalIssues: [],
                 highPriorityIssues: [],
                 warnings: [{
-                  type: 'AI Analysis Error',
-                  description: 'The AI did not call the required analysis tool. This may indicate the content was too large or the model refused to analyze.',
+                  type: 'AI Analysis Fallback',
+                  description: 'The AI returned an unstructured response, so a simplified QA report was generated instead of the full detailed analysis.',
                   location: 'AI Gateway',
-                  recommendation: 'Try with smaller files or a different URL. The AI said: ' + (data.choices?.[0]?.message?.content || 'No message')
+                  recommendation: 'You can rerun the analysis or try a more focused URL/file set if you need a deeper, more detailed report.'
                 }],
                 passedChecks: [],
                 detailedTests: [],
