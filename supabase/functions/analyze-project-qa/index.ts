@@ -228,7 +228,9 @@ serve(async (req) => {
             controller.enqueue(encoder.encode(sendProgress(50, 'Sending to AI for analysis...')));
 
             // Construct system prompt (same as non-streaming)
-            const systemPrompt = `You are a SENIOR QA TESTING SPECIALIST with 15+ years of experience conducting the MOST COMPREHENSIVE quality assurance audit possible.
+            const systemPrompt = `You are a SENIOR QA TESTING SPECIALIST with 15+ years of experience conducting COMPREHENSIVE quality assurance audits.
+
+🚨 CRITICAL: You MUST use the generate_qa_report function tool to return your analysis. DO NOT respond with text only. ALWAYS call the tool.
 
 MISSION: Generate a COMPREHENSIVE QA test report with 200-300 test scenarios covering all major areas. YOU MUST test all critical scenarios, common edge cases, and important functionality. Run each test scenario ONCE with detailed results including specific actions taken, expected behavior, actual behavior, and technical findings.
 
@@ -1089,18 +1091,25 @@ FINAL REMINDER:
               }
             } else {
               console.log('No tool call found in AI response, creating default report');
+              console.log('AI message content:', data.choices?.[0]?.message?.content);
+              console.log('Full AI response:', JSON.stringify(data));
               report = {
                 summary: {
                   totalFiles: filesToAnalyze.length,
                   criticalIssues: 0,
                   highPriorityIssues: 0,
-                  warnings: 0,
+                  warnings: 1,
                   passedChecks: 0,
-                  overallStatus: 'pass'
+                  overallStatus: 'warning'
                 },
                 criticalIssues: [],
                 highPriorityIssues: [],
-                warnings: [],
+                warnings: [{
+                  type: 'AI Analysis Error',
+                  description: 'The AI did not call the required analysis tool. This may indicate the content was too large or the model refused to analyze.',
+                  location: 'AI Gateway',
+                  recommendation: 'Try with smaller files or a different URL. The AI said: ' + (data.choices?.[0]?.message?.content || 'No message')
+                }],
                 passedChecks: [],
                 detailedTests: [],
                 metadata: {
@@ -1335,7 +1344,9 @@ FINAL REMINDER:
       .map((f) => `File: ${f.name}\n${f.content}`)
       .join('\n\n');
 
-    const systemPrompt = `You are a SENIOR QA TESTING SPECIALIST with 15+ years of experience conducting the MOST COMPREHENSIVE quality assurance audit possible.
+const systemPrompt = `You are a SENIOR QA TESTING SPECIALIST with 15+ years of experience conducting COMPREHENSIVE quality assurance audits.
+
+🚨 CRITICAL: You MUST use the generate_qa_report function tool to return your analysis. DO NOT respond with text only. ALWAYS call the tool.
 
 MISSION: Generate a COMPREHENSIVE QA test report with 200-300 test scenarios covering all major areas. YOU MUST test all critical scenarios, common edge cases, and important functionality. Run each test scenario ONCE with detailed results including specific actions taken, expected behavior, actual behavior, and technical findings.
 
