@@ -128,7 +128,40 @@ const AutomatedQA = () => {
       }
 
       if (!finalData) {
-        throw new Error('No data returned from analysis');
+        // If we got progress/events but no final structured report, surface a synthetic error report
+        const fallbackReport = {
+          summary: {
+            totalFiles: 1,
+            criticalIssues: 0,
+            highPriorityIssues: 0,
+            warnings: 1,
+            passedChecks: 0,
+            overallStatus: "warning" as const,
+          },
+          criticalIssues: [],
+          highPriorityIssues: [],
+          warnings: [
+            {
+              type: "AI Analysis Error",
+              description:
+                (typeof sseError === "string" && sseError) ||
+                "The analysis service did not return a full report.",
+              location: url.trim(),
+              recommendation:
+                "Try again in a few minutes, or narrow the URL/files to a smaller, focused scope.",
+            },
+          ],
+          passedChecks: [],
+          detailedTests: [],
+          metadata: {
+            source: url.trim(),
+            analyzedFiles: 1,
+            totalLines: 0,
+          },
+        };
+
+        console.warn("No structured report received, using fallback error report", fallbackReport);
+        finalData = fallbackReport;
       }
 
       // Add metadata if not present
