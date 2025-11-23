@@ -7,7 +7,8 @@ import { QATestReport } from "@/components/qa/QATestReport";
 import { TestExecutionDashboard } from "@/components/qa/TestExecutionDashboard";
 import { TestReportsLibrary } from "@/components/qa/TestReportsLibrary";
 import { FuzzTestingPanel } from "@/components/qa/FuzzTestingPanel";
-import { Sparkles, LogOut, Settings, Zap, FileCheck } from "lucide-react";
+import { LoadTestingPanel } from "@/components/qa/LoadTestingPanel";
+import { Sparkles, LogOut, Settings, Zap, FileCheck, Activity } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -452,8 +453,12 @@ const AutomatedQA = () => {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="upload" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="upload">Upload & Test</TabsTrigger>
+            <TabsTrigger value="load-testing" className="gap-2">
+              <Activity className="w-4 h-4" />
+              Load Testing
+            </TabsTrigger>
             <TabsTrigger value="report" className="gap-2">
               <FileCheck className="w-4 h-4" />
               Test Report
@@ -531,6 +536,10 @@ const AutomatedQA = () => {
                 )}
               </div>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="load-testing" className="space-y-6">
+            <LoadTestingPanel />
           </TabsContent>
 
           <TabsContent value="report" className="space-y-6">
