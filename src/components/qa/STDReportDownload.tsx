@@ -83,17 +83,15 @@ export const STDReportDownload = ({ report }: STDReportDownloadProps) => {
         console.log('Created tests from report structure:', testResults.length);
       }
       
-      // If still no tests, show error
+      // If still no tests, warn but allow PDF generation (summary-only report)
       if (testResults.length === 0) {
-        console.error('No test data available in report');
+        console.warn('No detailed test data found in report, generating summary-only PDF');
         toast({
-          title: "No Test Data",
-          description: "The report doesn't contain any test data to generate PDF",
-          variant: "destructive",
+          title: "No Detailed Tests",
+          description: "Generating a summary-only STD PDF based on the report data.",
         });
-        return;
       }
-
+ 
       const metadata = {
         source: report.metadata?.source || report.summary?.source || 'Unknown',
         timestamp: report.summary?.timestamp || new Date().toISOString(),
