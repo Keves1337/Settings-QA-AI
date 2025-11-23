@@ -6,7 +6,8 @@ import { TestCaseManager } from "@/components/qa/TestCaseManager";
 import { TestExecutionPanel } from "@/components/qa/TestExecutionPanel";
 import { BugTracker } from "@/components/qa/BugTracker";
 import { IntegrationSettings } from "@/components/qa/IntegrationSettings";
-import { FlaskConical, Play, Bug, Settings, LogOut } from "lucide-react";
+import { LoadTestingPanel } from "@/components/qa/LoadTestingPanel";
+import { FlaskConical, Play, Bug, Settings, LogOut, Activity } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -54,7 +55,7 @@ const QATesting = () => {
       <main className="container mx-auto px-4 py-8">
         <Card className="p-6">
           <Tabs defaultValue="test-cases" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="test-cases" className="gap-2">
                 <FlaskConical className="w-4 h-4" />
                 Test Cases
@@ -66,6 +67,10 @@ const QATesting = () => {
               <TabsTrigger value="bugs" className="gap-2">
                 <Bug className="w-4 h-4" />
                 Bugs
+              </TabsTrigger>
+              <TabsTrigger value="load-testing" className="gap-2">
+                <Activity className="w-4 h-4" />
+                Load Testing
               </TabsTrigger>
               <TabsTrigger value="settings" className="gap-2">
                 <Settings className="w-4 h-4" />
@@ -83,6 +88,10 @@ const QATesting = () => {
 
             <TabsContent value="bugs" className="space-y-4">
               <BugTracker />
+            </TabsContent>
+
+            <TabsContent value="load-testing" className="space-y-4">
+              <LoadTestingPanel />
             </TabsContent>
 
             <TabsContent value="settings" className="space-y-4">
