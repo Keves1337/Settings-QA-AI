@@ -7,6 +7,7 @@ import { TestExecutionPanel } from "@/components/qa/TestExecutionPanel";
 import { BugTracker } from "@/components/qa/BugTracker";
 import { IntegrationSettings } from "@/components/qa/IntegrationSettings";
 import { FlaskConical, Play, Bug, Settings, LogOut } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -39,10 +40,13 @@ const QATesting = () => {
                 </p>
               </div>
             </div>
-            <Button variant="outline" onClick={handleSignOut} className="gap-2">
-              <LogOut className="w-4 h-4" />
-              Sign Out
-            </Button>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <Button variant="outline" onClick={handleSignOut} className="gap-2">
+                <LogOut className="w-4 h-4" />
+                Sign Out
+              </Button>
+            </div>
           </div>
         </div>
       </header>

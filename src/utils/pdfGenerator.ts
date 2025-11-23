@@ -93,110 +93,25 @@ export const generateSTDReport = (reportData: QAReportData) => {
   doc.text(`Test Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, 14, 25);
   doc.text(`Tested By: Johnatan Milrad`, 14, 30);
   doc.text(`Test Source: ${metadata.source || 'N/A'}`, 14, 35);
-  const rawPass = testResults.filter(r => r.status === 'pass').length;
-  const rawPartial = testResults.filter(r => r.status === 'partial').length;
-  const rawFail = testResults.filter(r => r.status === 'fail').length;
-  
-  // If there are no detailed tests, fall back to summary-based distribution so the pie chart is still meaningful
-  let passCount = rawPass;
-  let partialCount = rawPartial;
-  let failCount = rawFail;
-  
-  if (testResults.length === 0) {
-    const issueFails = (reportData.summary.criticalIssues || 0) +
-      (reportData.summary.highPriorityIssues || 0) +
-      (reportData.summary.warnings || 0);
-    const issuePasses = reportData.summary.passedChecks || 0;
-    if (issueFails + issuePasses > 0) {
-      passCount = issuePasses;
-      failCount = issueFails;
-      partialCount = 0;
-    }
-  }
-  
-  const totalForChart = passCount + partialCount + failCount || 1;
+  const passCount = testResults.filter(r => r.status === 'pass').length;
+  const partialCount = testResults.filter(r => r.status === 'partial').length;
+  const failCount = testResults.filter(r => r.status === 'fail').length;
   
   doc.text(`Pass: ${passCount} | Partial: ${partialCount} | Fail: ${failCount}`, 14, 45);
   
   // Summary stats from report data
   doc.setFillColor(240, 240, 240);
-  doc.rect(14, 50, 160, 45, 'F');
+  doc.rect(14, 50, 270, 45, 'F');
   doc.setFontSize(12);
   doc.text(`Overall Status: ${reportData.summary.overallStatus.toUpperCase()}`, 20, 58);
   doc.text(`Critical Issues: ${reportData.summary.criticalIssues}`, 20, 66);
   doc.text(`High Priority: ${reportData.summary.highPriorityIssues}`, 20, 74);
   doc.text(`Warnings: ${reportData.summary.warnings}`, 20, 82);
   doc.text(`Passed Checks: ${reportData.summary.passedChecks}`, 20, 90);
-  const totalTests = testResults.length || totalForChart;
-  doc.text(`Success Rate: ${((passCount / totalForChart) * 100).toFixed(1)}%`, 95, 58);
-  doc.text(`Total Tests: ${totalTests}`, 95, 66);
-  
-  // Draw Pie Chart (TestRail style) - positioned lower-right to avoid overlap
-  const chartX = 220;
-  const chartY = 100;
-  const radius = 22;
-  
-  // Calculate percentages
-  const passPerc = passCount / totalForChart;
-  const partialPerc = partialCount / totalForChart;
-  const failPerc = failCount / totalForChart;
-  
-  // Chart title
-  doc.setFontSize(11);
-  doc.setTextColor(0, 0, 0);
-  doc.text('Test Results', chartX, 80, { align: 'center' });
-  
-  // Draw pie slices
-  let startAngle = -Math.PI / 2; // Start at top (12 o'clock)
-  
-  // Pass slice (green)
-  if (passPerc > 0) {
-    const endAngle = startAngle + (passPerc * 2 * Math.PI);
-    doc.setFillColor(34, 197, 94);
-    drawPieSlice(doc, chartX, chartY, radius, startAngle, endAngle);
-    startAngle = endAngle;
-  }
-  
-  // Partial slice (yellow)
-  if (partialPerc > 0) {
-    const endAngle = startAngle + (partialPerc * 2 * Math.PI);
-    doc.setFillColor(234, 179, 8);
-    drawPieSlice(doc, chartX, chartY, radius, startAngle, endAngle);
-    startAngle = endAngle;
-  }
-  
-  // Fail slice (red)
-  if (failPerc > 0) {
-    const endAngle = startAngle + (failPerc * 2 * Math.PI);
-    doc.setFillColor(239, 68, 68);
-    drawPieSlice(doc, chartX, chartY, radius, startAngle, endAngle);
-  }
-  
-  // Chart border
-  doc.setDrawColor(200, 200, 200);
-  doc.setLineWidth(0.5);
-  doc.circle(chartX, chartY, radius, 'S');
-  
-  // Legend - positioned below the chart
-  const legendX = chartX - 25;
-  const legendStartY = chartY + radius + 5;
-  
-  // Pass legend
-  doc.setFillColor(34, 197, 94);
-  doc.rect(legendX, legendStartY, 4, 4, 'F');
-  doc.setFontSize(8);
-  doc.setTextColor(0, 0, 0);
-  doc.text(`Pass: ${passCount} (${(passPerc * 100).toFixed(1)}%)`, legendX + 6, legendStartY + 3);
-  
-  // Partial legend
-  doc.setFillColor(234, 179, 8);
-  doc.rect(legendX, legendStartY + 6, 4, 4, 'F');
-  doc.text(`Partial: ${partialCount} (${(partialPerc * 100).toFixed(1)}%)`, legendX + 6, legendStartY + 9);
-  
-  // Fail legend
-  doc.setFillColor(239, 68, 68);
-  doc.rect(legendX, legendStartY + 12, 4, 4, 'F');
-  doc.text(`Fail: ${failCount} (${(failPerc * 100).toFixed(1)}%)`, legendX + 6, legendStartY + 15);
+  const totalTests = testResults.length || (passCount + partialCount + failCount);
+  const totalForChart = totalTests || 1;
+  doc.text(`Success Rate: ${((passCount / totalForChart) * 100).toFixed(1)}%`, 150, 58);
+  doc.text(`Total Tests: ${totalTests}`, 150, 66);
   
   // Add SUMMARY ISSUES section (Critical, High Priority, Warnings, Passed)
   doc.addPage();

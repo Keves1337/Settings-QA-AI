@@ -8,6 +8,7 @@ import { TestExecutionDashboard } from "@/components/qa/TestExecutionDashboard";
 import { TestReportsLibrary } from "@/components/qa/TestReportsLibrary";
 import { FuzzTestingPanel } from "@/components/qa/FuzzTestingPanel";
 import { Sparkles, LogOut, Settings, Zap, FileCheck } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -432,6 +433,7 @@ const AutomatedQA = () => {
               >
                 Back to Dashboard
               </Button>
+              <ThemeToggle />
               <Button
                 variant="outline"
                 onClick={() => window.location.href = '/qa-testing'}
