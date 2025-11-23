@@ -7,6 +7,7 @@ import { TaskList, Task } from "@/components/TaskList";
 import { StatsCards } from "@/components/StatsCards";
 import { ProjectManager } from "@/components/ProjectManager";
 import { Sparkles, Settings, BarChart3, LogOut } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -430,6 +431,7 @@ const Index = () => {
                 <Sparkles className="w-4 h-4" />
                 Automated QA
               </Button>
+              <ThemeToggle />
               <Button 
                 variant="outline" 
                 className="gap-2"

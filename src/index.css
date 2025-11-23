@@ -8,73 +8,119 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Modern iOS-inspired Glass Theme - Dark Mode */
-    --background: 220 25% 8%;
-    --foreground: 220 10% 98%;
+    /* Fresh Light Mode - Teal/Cyan Theme */
+    --background: 180 30% 98%;
+    --foreground: 200 25% 10%;
     
-    /* Glass effect variables */
-    --glass-bg: 220 25% 12%;
-    --glass-border: 220 20% 25%;
-    --glass-shadow: 220 50% 5%;
+    --card: 0 0% 100%;
+    --card-foreground: 200 25% 10%;
     
-    /* Card with glass effect */
-    --card: 220 25% 10%;
-    --card-foreground: 220 10% 98%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 200 25% 10%;
     
-    --popover: 220 25% 12%;
-    --popover-foreground: 220 10% 98%;
+    /* Primary - Vibrant Teal */
+    --primary: 175 70% 45%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 180 75% 55%;
     
-    /* Primary - Vibrant Blue/Purple gradient */
-    --primary: 250 95% 65%;
-    --primary-foreground: 220 10% 98%;
-    --primary-glow: 260 100% 70%;
-    
-    /* Secondary - Soft purple */
-    --secondary: 260 60% 55%;
-    --secondary-foreground: 220 10% 98%;
+    /* Secondary - Cyan */
+    --secondary: 185 60% 50%;
+    --secondary-foreground: 0 0% 100%;
     
     /* Muted elements */
-    --muted: 220 20% 18%;
-    --muted-foreground: 220 10% 65%;
+    --muted: 180 20% 94%;
+    --muted-foreground: 200 15% 40%;
     
-    /* Accent - Cyan/Blue */
-    --accent: 200 95% 60%;
-    --accent-foreground: 220 10% 98%;
+    /* Accent - Bright Cyan */
+    --accent: 190 80% 50%;
+    --accent-foreground: 0 0% 100%;
     
-    --success: 142 76% 50%;
-    --success-foreground: 220 10% 98%;
+    --success: 142 76% 45%;
+    --success-foreground: 0 0% 100%;
     
-    --warning: 38 92% 60%;
-    --warning-foreground: 220 10% 98%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
     
-    --destructive: 0 85% 60%;
-    --destructive-foreground: 220 10% 98%;
+    --destructive: 0 85% 55%;
+    --destructive-foreground: 0 0% 100%;
     
-    --border: 220 20% 25%;
-    --input: 220 20% 18%;
-    --ring: 250 95% 65%;
+    --border: 180 20% 88%;
+    --input: 180 20% 95%;
+    --ring: 175 70% 45%;
     
-    --radius: 1rem;
+    --radius: 0.75rem;
 
     /* Gradient definitions */
-    --gradient-primary: linear-gradient(135deg, hsl(250 95% 65%), hsl(260 100% 70%));
-    --gradient-secondary: linear-gradient(135deg, hsl(260 60% 55%), hsl(280 70% 60%));
-    --gradient-accent: linear-gradient(135deg, hsl(200 95% 60%), hsl(220 90% 65%));
-    --gradient-success: linear-gradient(135deg, hsl(142 76% 50%), hsl(142 76% 60%));
-    --gradient-card: linear-gradient(180deg, hsl(220 25% 12%), hsl(220 25% 10%));
-    --gradient-glass: linear-gradient(135deg, 
-      hsla(220, 25%, 15%, 0.7), 
-      hsla(220, 25%, 12%, 0.5));
+    --gradient-primary: linear-gradient(135deg, hsl(175 70% 45%), hsl(180 75% 55%));
+    --gradient-secondary: linear-gradient(135deg, hsl(185 60% 50%), hsl(195 65% 55%));
+    --gradient-accent: linear-gradient(135deg, hsl(190 80% 50%), hsl(200 75% 55%));
+    --gradient-success: linear-gradient(135deg, hsl(142 76% 45%), hsl(142 76% 55%));
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(180 30% 99%));
     
     /* Shadows */
-    --shadow-sm: 0 2px 8px -2px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 4px 16px -4px rgba(0, 0, 0, 0.4);
-    --shadow-lg: 0 8px 32px -8px rgba(0, 0, 0, 0.5);
-    --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-    --shadow-glow: 0 0 30px hsla(250, 95%, 65%, 0.3);
-    --shadow-card: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
+    --shadow-sm: 0 2px 8px -2px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 4px 16px -4px rgba(0, 0, 0, 0.12);
+    --shadow-lg: 0 8px 32px -8px rgba(0, 0, 0, 0.16);
+    --shadow-glow: 0 0 30px hsla(175, 70%, 45%, 0.15);
+    --shadow-card: 0 4px 20px -4px rgba(0, 0, 0, 0.1);
 
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .dark {
+    /* Modern Dark Mode - Deep Teal Theme */
+    --background: 200 30% 8%;
+    --foreground: 180 10% 98%;
+    
+    --card: 200 28% 10%;
+    --card-foreground: 180 10% 98%;
+    
+    --popover: 200 28% 12%;
+    --popover-foreground: 180 10% 98%;
+    
+    /* Primary - Vibrant Teal */
+    --primary: 175 70% 55%;
+    --primary-foreground: 200 30% 5%;
+    --primary-glow: 180 75% 65%;
+    
+    /* Secondary - Cyan */
+    --secondary: 185 60% 55%;
+    --secondary-foreground: 200 30% 5%;
+    
+    /* Muted elements */
+    --muted: 200 25% 18%;
+    --muted-foreground: 180 10% 65%;
+    
+    /* Accent - Bright Cyan */
+    --accent: 190 80% 60%;
+    --accent-foreground: 200 30% 5%;
+    
+    --success: 142 76% 50%;
+    --success-foreground: 200 30% 5%;
+    
+    --warning: 38 92% 60%;
+    --warning-foreground: 200 30% 5%;
+    
+    --destructive: 0 85% 60%;
+    --destructive-foreground: 180 10% 98%;
+    
+    --border: 200 25% 25%;
+    --input: 200 25% 18%;
+    --ring: 175 70% 55%;
+    
+    /* Gradient definitions for dark mode */
+    --gradient-primary: linear-gradient(135deg, hsl(175 70% 55%), hsl(180 75% 65%));
+    --gradient-secondary: linear-gradient(135deg, hsl(185 60% 55%), hsl(195 65% 60%));
+    --gradient-accent: linear-gradient(135deg, hsl(190 80% 60%), hsl(200 75% 65%));
+    --gradient-success: linear-gradient(135deg, hsl(142 76% 50%), hsl(142 76% 60%));
+    --gradient-card: linear-gradient(180deg, hsl(200 28% 12%), hsl(200 28% 10%));
+    
+    /* Shadows for dark mode */
+    --shadow-sm: 0 2px 8px -2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 16px -4px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 8px 32px -8px rgba(0, 0, 0, 0.6);
+    --shadow-glow: 0 0 30px hsla(175, 70%, 55%, 0.3);
+    --shadow-card: 0 10px 40px -10px rgba(0, 0, 0, 0.6);
   }
 }
 
@@ -85,8 +131,8 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
-    background: linear-gradient(180deg, hsl(220 25% 8%) 0%, hsl(230 30% 6%) 100%);
     min-height: 100vh;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 
   .animate-fade-in {
@@ -135,28 +181,6 @@ All colors MUST be HSL.
 }
 
 @layer utilities {
-  /* Glass effect utility */
-  .glass {
-    background: linear-gradient(135deg, 
-      hsla(var(--glass-bg), 0.7), 
-      hsla(var(--glass-bg), 0.5));
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid hsla(var(--glass-border), 0.3);
-    box-shadow: var(--shadow-glass);
-  }
-  
-  /* Premium glass effect */
-  .glass-premium {
-    background: linear-gradient(135deg, 
-      hsla(var(--glass-bg), 0.8), 
-      hsla(var(--glass-bg), 0.6));
-    backdrop-filter: blur(30px) saturate(200%);
-    -webkit-backdrop-filter: blur(30px) saturate(200%);
-    border: 1px solid hsla(var(--glass-border), 0.4);
-    box-shadow: var(--shadow-glass), inset 0 1px 0 0 hsla(220, 100%, 100%, 0.05);
-  }
-  
   /* Glow effect */
   .glow {
     box-shadow: 0 0 20px hsla(var(--primary), 0.4),
@@ -170,8 +194,7 @@ All colors MUST be HSL.
   
   .hover-glow:hover {
     box-shadow: 0 0 30px hsla(var(--primary), 0.5),
-                0 0 60px hsla(var(--primary), 0.3),
-                var(--shadow-glass);
+                0 0 60px hsla(var(--primary), 0.3);
     transform: translateY(-2px);
   }
   
