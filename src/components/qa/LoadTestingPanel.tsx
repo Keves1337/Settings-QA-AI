@@ -21,12 +21,19 @@ interface LoadTestResult {
 
 export const LoadTestingPanel = () => {
   const [url, setUrl] = useState("");
-  const totalRequests = 1000; // Maximum allowed
-  const concurrentRequests = 50; // Maximum allowed
+  const [totalRequests, setTotalRequests] = useState(100);
+  const [concurrentRequests, setConcurrentRequests] = useState(10);
   const [isRunning, setIsRunning] = useState(false);
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState<LoadTestResult | null>(null);
   const { toast } = useToast();
+
+  // Sample URLs for testing
+  const sampleUrls = [
+    { label: "httpbin.org (Reliable)", url: "https://httpbin.org/get" },
+    { label: "JSONPlaceholder", url: "https://jsonplaceholder.typicode.com/posts/1" },
+    { label: "Google", url: "https://www.google.com" },
+  ];
 
   const startLoadTest = async () => {
     if (!url) {
@@ -91,19 +98,49 @@ export const LoadTestingPanel = () => {
               onChange={(e) => setUrl(e.target.value)}
               disabled={isRunning}
             />
+            <div className="flex gap-2 mt-2 flex-wrap">
+              {sampleUrls.map((sample) => (
+                <Button
+                  key={sample.url}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setUrl(sample.url)}
+                  disabled={isRunning}
+                  className="text-xs"
+                >
+                  {sample.label}
+                </Button>
+              ))}
+            </div>
           </div>
 
-          <div className="p-4 rounded-lg bg-muted">
-            <div className="text-sm text-muted-foreground mb-1">
-              Test Configuration (Maximum Load)
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="total-requests">Total Requests</Label>
+              <Input
+                id="total-requests"
+                type="number"
+                min="10"
+                max="500"
+                value={totalRequests}
+                onChange={(e) => setTotalRequests(Math.min(500, Math.max(10, parseInt(e.target.value) || 100)))}
+                disabled={isRunning}
+              />
+              <span className="text-xs text-muted-foreground">10 - 500</span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="font-semibold">Total Requests:</span>
-              <span className="text-primary font-bold">1,000</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="font-semibold">Concurrent Requests:</span>
-              <span className="text-primary font-bold">50</span>
+
+            <div>
+              <Label htmlFor="concurrent-requests">Concurrent Requests</Label>
+              <Input
+                id="concurrent-requests"
+                type="number"
+                min="1"
+                max="25"
+                value={concurrentRequests}
+                onChange={(e) => setConcurrentRequests(Math.min(25, Math.max(1, parseInt(e.target.value) || 10)))}
+                disabled={isRunning}
+              />
+              <span className="text-xs text-muted-foreground">1 - 25</span>
             </div>
           </div>
 
@@ -112,7 +149,7 @@ export const LoadTestingPanel = () => {
             disabled={isRunning}
             className="w-full"
           >
-            {isRunning ? "Running Maximum Load Test..." : "Start Maximum Load Test"}
+            {isRunning ? "Running Load Test..." : "Start Load Test"}
           </Button>
 
           {isRunning && (

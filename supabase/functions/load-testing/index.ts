@@ -103,17 +103,21 @@ serve(async (req) => {
       throw new Error('URL is required');
     }
     
-    if (totalRequests < 1 || totalRequests > 1000) {
-      throw new Error('Total requests must be between 1 and 1000');
+    // Limit requests to prevent timeout and abuse
+    const safeTotal = Math.min(totalRequests || 100, 500);
+    const safeConcurrent = Math.min(concurrentRequests || 10, 25);
+    
+    if (safeTotal < 1) {
+      throw new Error('Total requests must be at least 1');
     }
     
-    if (concurrentRequests < 1 || concurrentRequests > 50) {
-      throw new Error('Concurrent requests must be between 1 and 50');
+    if (safeConcurrent < 1) {
+      throw new Error('Concurrent requests must be at least 1');
     }
     
-    console.log(`Starting load test: ${totalRequests} requests to ${url} with ${concurrentRequests} concurrent`);
+    console.log(`Starting load test: ${safeTotal} requests to ${url} with ${safeConcurrent} concurrent`);
     
-    const results = await runLoadTest(url, totalRequests, concurrentRequests);
+    const results = await runLoadTest(url, safeTotal, safeConcurrent);
     
     console.log(`Load test completed: ${results.successfulRequests}/${results.totalRequests} successful`);
     
