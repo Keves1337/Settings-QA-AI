@@ -51,11 +51,11 @@ const getStatusColor = (status: string): [number, number, number] => {
 const getStatusText = (status: string): string => {
   switch (status) {
     case 'pass':
-      return '✓ PASS';
+      return 'PASS';
     case 'partial':
-      return '⚠ PARTIAL';
+      return 'PARTIAL';
     case 'fail':
-      return '✗ FAIL';
+      return 'FAIL';
     default:
       return 'UNKNOWN';
   }
