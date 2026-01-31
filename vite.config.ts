@@ -1,10 +1,10 @@
 import { defineConfig } from "vite";
-
-// GitHub Pages base path - set to repo name for GitHub Pages deployment
-const base = process.env.GITHUB_ACTIONS ? "/Settings-QA-AI/" : "/";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
+
+// GitHub Pages base path - set to repo name for GitHub Pages deployment
+const base = process.env.GITHUB_ACTIONS ? "/Settings-QA-AI/" : "/";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
