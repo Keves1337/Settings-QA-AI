@@ -10,9 +10,11 @@ import { Sparkles, Settings, BarChart3, LogOut } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 const Index = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [selectedPhase, setSelectedPhase] = useState<string>("all");
   const [stats, setStats] = useState<Array<{
     label: string;
@@ -426,7 +428,7 @@ const Index = () => {
               <Button 
                 variant="outline" 
                 className="gap-2"
-                onClick={() => window.location.href = '/automated-qa'}
+                onClick={() => navigate("/automated-qa")}
               >
                 <Sparkles className="w-4 h-4" />
                 Automated QA
@@ -435,7 +437,7 @@ const Index = () => {
               <Button 
                 variant="outline" 
                 className="gap-2"
-                onClick={() => window.location.href = '/qa-testing'}
+                onClick={() => navigate("/qa-testing")}
               >
                 <BarChart3 className="w-4 h-4" />
                 QA Settings
