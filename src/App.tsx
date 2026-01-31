@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, HashRouter, Routes, Route } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { AuthForm } from "@/components/auth/AuthForm";
 import Index from "./pages/Index";
 import QATesting from "./pages/QATesting";
 import AutomatedQA from "./pages/AutomatedQA";
@@ -17,15 +18,15 @@ const isGithubPages =
 
 const App = () => {
   const [loading, setLoading] = useState(true);
+  const [isAuthed, setIsAuthed] = useState(false);
 
   useEffect(() => {
     const initAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        await supabase.auth.signInAnonymously();
-      }
-      
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      setIsAuthed(!!session);
       setLoading(false);
     };
 
@@ -34,9 +35,7 @@ const App = () => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
-        supabase.auth.signInAnonymously();
-      }
+      setIsAuthed(!!session);
     });
 
     return () => subscription.unsubscribe();
@@ -44,6 +43,10 @@ const App = () => {
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
+
+  if (!isAuthed) {
+    return <AuthForm />;
   }
 
   return (
