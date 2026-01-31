@@ -33,8 +33,8 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_URL: https://fqxvnkzajsginyzgpafg.supabase.co
+          VITE_SUPABASE_PUBLISHABLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxeHZua3phanNnaW55emdwYWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NDkxNjEsImV4cCI6MjA3NjQyNTE2MX0.OfdWuwedXKOocLubCN1xKYT2c-ipiO8X7ZeBZDSlTsY
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
