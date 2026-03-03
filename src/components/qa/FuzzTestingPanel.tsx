@@ -108,20 +108,14 @@ export const FuzzTestingPanel = ({ uploadedFiles }: FuzzTestingPanelProps) => {
         setProgress((prev) => Math.min(prev + 10, 90));
       }, 500);
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fuzz-testing`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({
-            codeFiles: fileContents,
-            testConfig: { iterations },
-          }),
-        }
-      );
+      const response = await fetch("/api/fuzz-testing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          codeFiles: fileContents,
+          testConfig: { iterations },
+        }),
+      });
 
       clearInterval(progressInterval);
       setProgress(100);

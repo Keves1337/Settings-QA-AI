@@ -311,14 +311,16 @@ const Index = () => {
   const handleGenerateTasks = async () => {
     setIsGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-tasks', {
-        body: { 
+      const res = await fetch("/api/generate-tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           phase: selectedPhase,
-          existingTasks: tasks.map(t => ({ title: t.title, phase: t.phase }))
-        }
+          existingTasks: tasks.map(t => ({ title: t.title, phase: t.phase })),
+        }),
       });
-
-      if (error) throw error;
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
 
       const newTasks = data.tasks.map((task: any, index: number) => ({
         id: `${Date.now()}-${index}`,

@@ -64,15 +64,17 @@ export const TestCaseManager = () => {
 
     setIsGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-test-cases-qa", {
-        body: {
+      const response = await fetch("/api/generate-test-cases", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           feature: featureDescription,
           existingTestCases: testCases.map((tc) => tc.title),
           phase: selectedPhase,
-        },
+        }),
       });
-
-      if (error) throw error;
+      if (!response.ok) throw new Error(await response.text());
+      const data = await response.json();
 
       // Insert generated test cases
       for (const testCase of data.testCases) {

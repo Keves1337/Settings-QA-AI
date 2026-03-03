@@ -122,19 +122,21 @@ export const BugTracker = () => {
     // Upload screenshots if any
     if (screenshots.length > 0 && bugData) {
       for (let i = 0; i < screenshots.length; i++) {
-        const { error: screenshotError } = await supabase.functions.invoke(
-          "capture-bug-screenshot",
-          {
-            body: {
+        try {
+          const screenshotRes = await fetch("/api/capture-screenshot", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
               bugId: bugData.id,
               screenshotBase64: screenshots[i],
               fileName: `screenshot-${i + 1}.png`,
-            },
+            }),
+          });
+          if (!screenshotRes.ok) {
+            console.error("Failed to upload screenshot:", await screenshotRes.text());
           }
-        );
-
-        if (screenshotError) {
-          console.error("Failed to upload screenshot:", screenshotError);
+        } catch (err) {
+          console.error("Failed to upload screenshot:", err);
         }
       }
     }
@@ -195,42 +197,44 @@ export const BugTracker = () => {
   };
 
   const syncToJira = async (bugId: string) => {
-    const { data, error } = await supabase.functions.invoke("sync-jira", {
-      body: { bugId, action: "create" },
-    });
-
-    if (error) {
-      toast({
-        title: "Error",
-        description: "Failed to sync with Jira",
-        variant: "destructive",
+    try {
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      const res = await fetch("/api/sync-jira", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ bugId, action: "create" }),
       });
-    } else {
-      toast({
-        title: "Success",
-        description: `Created Jira issue: ${data.issueKey}`,
-      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to sync");
+      toast({ title: "Success", description: `Created Jira issue: ${data.issueKey}` });
       loadBugs();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "Failed to sync with Jira", variant: "destructive" });
     }
   };
 
   const syncToGitHub = async (bugId: string) => {
-    const { data, error } = await supabase.functions.invoke("sync-github", {
-      body: { bugId, action: "create" },
-    });
-
-    if (error) {
-      toast({
-        title: "Error",
-        description: "Failed to sync with GitHub",
-        variant: "destructive",
+    try {
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      const res = await fetch("/api/sync-github", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ bugId, action: "create" }),
       });
-    } else {
-      toast({
-        title: "Success",
-        description: `Created GitHub issue #${data.issueNumber}`,
-      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to sync");
+      toast({ title: "Success", description: `Created GitHub issue #${data.issueNumber}` });
       loadBugs();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "Failed to sync with GitHub", variant: "destructive" });
     }
   };
 

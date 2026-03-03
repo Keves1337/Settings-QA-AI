@@ -69,23 +69,22 @@ export const TestExecutionDashboard = () => {
 
         // Generate STR report
         try {
-          const { data: reportData, error: reportError } = await supabase.functions.invoke(
-            'generate-test-report',
-            {
-              body: {
-                testRunId: testRun.id,
-                testCase,
-                result: { status, result: resultText },
-                duration,
-                timestamp: new Date().toISOString(),
-              },
-            }
-          );
-
-          if (reportError) {
-            console.error('Error generating report:', reportError);
-          } else {
+          const reportRes = await fetch("/api/generate-test-report", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              testRunId: testRun.id,
+              testCase,
+              result: { status, result: resultText },
+              duration,
+              timestamp: new Date().toISOString(),
+            }),
+          });
+          if (reportRes.ok) {
+            const reportData = await reportRes.json();
             console.log('Report generated:', reportData.fileName);
+          } else {
+            console.error('Error generating report:', await reportRes.text());
           }
         } catch (reportErr) {
           console.error('Report generation failed:', reportErr);

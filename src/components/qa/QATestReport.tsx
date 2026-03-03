@@ -3,7 +3,6 @@ import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, AlertTriangle, CheckCircle, Info, Languages } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { toast } from "sonner";
 import { STDReportDownload } from "./STDReportDownload";
@@ -44,11 +43,13 @@ const IssueCard = ({ issue, idx, color }: { issue: QAReportItem; idx: number; co
     try {
       const textToTranslate = `${issue.description}${issue.impact ? `\n\nImpact: ${issue.impact}` : ''}${issue.recommendation ? `\n\nFix: ${issue.recommendation}` : ''}`;
       
-      const { data, error } = await supabase.functions.invoke('translate-to-hebrew', {
-        body: { text: textToTranslate }
+      const res = await fetch("/api/translate-to-hebrew", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: textToTranslate }),
       });
-
-      if (error) throw error;
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
       
       if (data?.translatedText) {
         setTranslatedText(data.translatedText);

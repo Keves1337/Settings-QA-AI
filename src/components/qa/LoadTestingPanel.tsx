@@ -5,7 +5,6 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { Activity, AlertCircle, CheckCircle, XCircle } from "lucide-react";
 
 interface LoadTestResult {
@@ -50,15 +49,13 @@ export const LoadTestingPanel = () => {
     setResults(null);
 
     try {
-      const { data, error } = await supabase.functions.invoke("load-testing", {
-        body: {
-          url,
-          totalRequests,
-          concurrentRequests,
-        },
+      const response = await fetch("/api/load-testing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url, totalRequests, concurrentRequests }),
       });
-
-      if (error) throw error;
+      if (!response.ok) throw new Error(await response.text());
+      const data = await response.json();
 
       setResults(data);
       setProgress(100);

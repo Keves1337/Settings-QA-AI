@@ -47,19 +47,11 @@ const AutomatedQA = () => {
     setProgressMessage('Starting analysis...');
 
     try {
-      // Use streaming endpoint with progress updates
-      const authHeader = (await supabase.auth.getSession()).data.session?.access_token;
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-project-qa`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authHeader}`,
-          },
-          body: JSON.stringify({ url: url.trim(), streaming: true })
-        }
-      );
+      const response = await fetch("/api/analyze-project-qa", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: url.trim(), streaming: true }),
+      });
 
       if (!response.ok) {
         throw new Error(`Failed to analyze URL: ${response.status}`);
@@ -111,22 +103,8 @@ const AutomatedQA = () => {
         }
       }
 
-      // Fallback: if streaming didn't yield final data, try a non-streaming call
-      if (!finalData) {
-        if (sseError) {
-          throw new Error(sseError);
-        }
-        try {
-          const { data: nonStreamData, error: fnError } = await supabase.functions.invoke('analyze-project-qa', {
-            body: { url: url.trim(), streaming: false }
-          });
-          if (fnError) throw fnError;
-          if (nonStreamData?.summary || nonStreamData?.report?.summary || nonStreamData?.data?.summary) {
-            finalData = nonStreamData.summary ? nonStreamData : (nonStreamData.report?.summary ? nonStreamData.report : nonStreamData.data);
-          }
-        } catch (e) {
-          // ignore here; we'll throw a clear message below if still missing
-        }
+      if (!finalData && sseError) {
+        throw new Error(sseError);
       }
 
       if (!finalData) {
@@ -269,19 +247,11 @@ const AutomatedQA = () => {
       setProgress(30);
       setProgressMessage('Sending to AI for analysis...');
 
-      // Use streaming endpoint with progress updates
-      const authHeader = (await supabase.auth.getSession()).data.session?.access_token;
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-project-qa`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authHeader}`,
-          },
-          body: JSON.stringify({ files: fileContents, streaming: true })
-        }
-      );
+      const response = await fetch("/api/analyze-project-qa", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ files: fileContents, streaming: true }),
+      });
 
       if (!response.ok) {
         throw new Error(`Failed to analyze files: ${response.status}`);
@@ -332,39 +302,13 @@ const AutomatedQA = () => {
         }
       }
 
-      // Fallback: if streaming didn't yield final data, try a non-streaming call
-      if (!finalData) {
-        if (sseError) {
-          throw new Error(sseError);
-        }
-        try {
-          const { data: nonStreamData, error: fnError } = await supabase.functions.invoke('analyze-project-qa', {
-            body: { files: fileContents, streaming: false }
-          });
-          if (fnError) throw fnError;
-          if (nonStreamData?.summary || nonStreamData?.report?.summary || nonStreamData?.data?.summary) {
-            finalData = nonStreamData.summary ? nonStreamData : (nonStreamData.report?.summary ? nonStreamData.report : nonStreamData.data);
-          }
-        } catch (e) {
-          // ignore here; we'll throw a clear message below if still missing
-        }
+      if (!finalData && sseError) {
+        throw new Error(sseError);
       }
-
       if (!finalData) {
         throw new Error('No data returned from analysis');
       }
-
       const data = finalData;
-      const error = null;
-
-      if (error) {
-        console.error('Edge function error:', error);
-        throw new Error(error.message || 'Failed to analyze files');
-      }
-
-      if (!data) {
-        throw new Error('No data returned from analysis');
-      }
 
       // Add metadata if not present  
       if (!data.metadata) {
