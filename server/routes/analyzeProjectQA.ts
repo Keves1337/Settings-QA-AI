@@ -187,8 +187,9 @@ function sendSSETemplate(res: Response, source: string, fileCount: number) {
   send({ progress: 60, message: "Running QA checks..." });
   send({ progress: 85, message: "Compiling report..." });
 
+  send({ progress: 100, message: "Complete" });
   const report = buildTemplateReport(source, fileCount);
-  send({ progress: 100, message: "Complete", result: report });
+  res.write(`data: ${JSON.stringify(report)}\n\n`);
   res.end();
 }
 
@@ -300,7 +301,8 @@ export async function analyzeProjectQA(req: Request, res: Response) {
       }
 
       const report = JSON.parse(toolCall.function.arguments);
-      res.write(`data: ${JSON.stringify({ progress: 100, message: "Complete", result: report })}\n\n`);
+      res.write(sendProgress(100, "Complete"));
+      res.write(`data: ${JSON.stringify(report)}\n\n`);
       return res.end();
     } catch (error: any) {
       res.write(`data: ${JSON.stringify({ error: error?.message || "Analysis failed" })}\n\n`);
