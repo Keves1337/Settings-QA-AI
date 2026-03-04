@@ -15,7 +15,7 @@ import { useNavigate } from "react-router-dom";
 
 const Index = () => {
   const { toast } = useToast();
-  const { session, signOut } = useAuth();
+  const { signOut } = useAuth();
   const navigate = useNavigate();
   const [selectedPhase, setSelectedPhase] = useState<string>("all");
   const [stats, setStats] = useState<Array<{
@@ -310,13 +310,9 @@ const Index = () => {
   const handleGenerateTasks = async () => {
     setIsGenerating(true);
     try {
-      const token = session?.access_token;
       const res = await fetch("/api/generate-tasks", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           phase: selectedPhase,
           existingTasks: tasks.map(t => ({ title: t.title, phase: t.phase })),

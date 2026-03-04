@@ -1,28 +1,7 @@
 import { Request, Response } from "express";
 import OpenAI from "openai";
-import { createClient } from "@supabase/supabase-js";
 
 export async function generateTasks(req: Request, res: Response) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-
-  const supabaseUrl = process.env.VITE_SUPABASE_URL;
-  const supabaseKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-  if (!supabaseUrl || !supabaseKey) {
-    return res.status(500).json({ error: "Supabase not configured" });
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseKey, {
-    global: { headers: { Authorization: authHeader } },
-  });
-
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-
   const { phase, existingTasks } = req.body;
 
   if (!phase || typeof phase !== "string") {

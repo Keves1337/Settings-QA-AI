@@ -4,7 +4,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Index from "./pages/Index";
 import QATesting from "./pages/QATesting";
 import AutomatedQA from "./pages/AutomatedQA";
@@ -27,9 +26,9 @@ const App = () => (
         <Sonner />
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <Routes>
-            <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-            <Route path="/qa-testing" element={<ProtectedRoute><QATesting /></ProtectedRoute>} />
-            <Route path="/automated-qa" element={<ProtectedRoute><AutomatedQA /></ProtectedRoute>} />
+            <Route path="/" element={<Index />} />
+            <Route path="/qa-testing" element={<QATesting />} />
+            <Route path="/automated-qa" element={<AutomatedQA />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

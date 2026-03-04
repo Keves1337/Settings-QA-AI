@@ -1,27 +1,14 @@
 import { Request, Response } from "express";
 import { createClient } from "@supabase/supabase-js";
 
+function getSupabase() {
+  const url = process.env.VITE_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !key) throw new Error("Supabase not configured");
+  return createClient(url, key);
+}
+
 export async function syncGithub(req: Request, res: Response) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-
-  const supabaseUrl = process.env.VITE_SUPABASE_URL;
-  const supabaseKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-  if (!supabaseUrl || !supabaseKey) {
-    return res.status(500).json({ error: "Supabase not configured" });
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseKey, {
-    global: { headers: { Authorization: authHeader } },
-  });
-
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-
   const { bugId, action } = req.body;
 
   if (!bugId || typeof bugId !== "string") {
@@ -32,6 +19,8 @@ export async function syncGithub(req: Request, res: Response) {
   }
 
   try {
+    const supabase = getSupabase();
+
     const { data: integrationData, error: integrationError } = await supabase
       .from("integrations")
       .select("*")
@@ -72,7 +61,7 @@ export async function syncGithub(req: Request, res: Response) {
       const createdIssue = await response.json();
       await supabase.from("bugs").update({ github_issue_number: createdIssue.number }).eq("id", bugId);
       return res.json({ success: true, issueNumber: createdIssue.number, url: createdIssue.html_url });
-    } else if (action === "update") {
+    } else {
       if (!bug.github_issue_number) {
         return res.status(400).json({ error: "Bug not linked to GitHub issue" });
       }
@@ -101,8 +90,6 @@ export async function syncGithub(req: Request, res: Response) {
 
       return res.json({ success: true });
     }
-
-    return res.status(400).json({ error: "Invalid action" });
   } catch (error: any) {
     console.error("GitHub sync error:", error);
     return res.status(500).json({ error: error?.message || "Unknown error" });
