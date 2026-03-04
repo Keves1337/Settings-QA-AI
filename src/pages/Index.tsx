@@ -89,13 +89,11 @@ const Index = () => {
 
   const loadStats = async () => {
     try {
-      const { data, error } = await supabase.rpc('get_project_stats');
-      
-      if (error) throw error;
+      const res = await fetch("/api/stats");
+      if (!res.ok) return;
+      const statsData = await res.json();
 
-      if (data && typeof data === 'object') {
-        const statsData = data as any;
-        
+      if (statsData && typeof statsData === 'object') {
         setStats([
           {
             label: "Active Projects",
@@ -127,19 +125,18 @@ const Index = () => {
           },
         ]);
       }
-    } catch (error) {
-      console.error('Error loading stats:', error);
+    } catch {
     }
   };
 
   const loadPhases = async () => {
     try {
-      const { data, error } = await supabase.rpc('get_phase_stats');
-      
-      if (error) throw error;
+      const res = await fetch("/api/phase-stats");
+      if (!res.ok) return;
+      const phaseData = await res.json();
 
-      if (data && typeof data === 'object') {
-        const phaseData = data as any;
+      if (phaseData && typeof phaseData === 'object') {
+        const pd = phaseData as any;
         
         // Determine status based on progress and active projects
         const getPhaseStatus = (progress: number, projects: number) => {
@@ -153,62 +150,61 @@ const Index = () => {
             id: "planning",
             name: "Planning",
             description: "Define scope and goals",
-            status: getPhaseStatus(phaseData.planning.progress, phaseData.planning.projects),
-            progress: phaseData.planning.progress || 0,
-            tasks: phaseData.planning.tasks || 0,
+            status: getPhaseStatus(pd.planning?.progress ?? 0, pd.planning?.projects ?? 0),
+            progress: pd.planning?.progress || 0,
+            tasks: pd.planning?.tasks || 0,
           },
           {
             id: "requirements",
             name: "Requirements",
             description: "Gather specifications",
-            status: getPhaseStatus(phaseData.requirements.progress, phaseData.requirements.projects),
-            progress: phaseData.requirements.progress || 0,
-            tasks: phaseData.requirements.tasks || 0,
+            status: getPhaseStatus(pd.requirements?.progress ?? 0, pd.requirements?.projects ?? 0),
+            progress: pd.requirements?.progress || 0,
+            tasks: pd.requirements?.tasks || 0,
           },
           {
             id: "design",
             name: "Design",
             description: "Create architecture",
-            status: getPhaseStatus(phaseData.design.progress, phaseData.design.projects),
-            progress: phaseData.design.progress || 0,
-            tasks: phaseData.design.tasks || 0,
+            status: getPhaseStatus(pd.design?.progress ?? 0, pd.design?.projects ?? 0),
+            progress: pd.design?.progress || 0,
+            tasks: pd.design?.tasks || 0,
           },
           {
             id: "development",
             name: "Development",
             description: "Code implementation",
-            status: getPhaseStatus(phaseData.development.progress, phaseData.development.projects),
-            progress: phaseData.development.progress || 0,
-            tasks: phaseData.development.tasks || 0,
+            status: getPhaseStatus(pd.development?.progress ?? 0, pd.development?.projects ?? 0),
+            progress: pd.development?.progress || 0,
+            tasks: pd.development?.tasks || 0,
           },
           {
             id: "testing",
             name: "Testing",
             description: "Quality assurance",
-            status: getPhaseStatus(phaseData.testing.progress, phaseData.testing.projects),
-            progress: phaseData.testing.progress || 0,
-            tasks: phaseData.testing.tasks || 0,
+            status: getPhaseStatus(pd.testing?.progress ?? 0, pd.testing?.projects ?? 0),
+            progress: pd.testing?.progress || 0,
+            tasks: pd.testing?.tasks || 0,
           },
           {
             id: "deployment",
             name: "Deployment",
             description: "Release to production",
-            status: getPhaseStatus(phaseData.deployment.progress, phaseData.deployment.projects),
-            progress: phaseData.deployment.progress || 0,
-            tasks: phaseData.deployment.tasks || 0,
+            status: getPhaseStatus(pd.deployment?.progress ?? 0, pd.deployment?.projects ?? 0),
+            progress: pd.deployment?.progress || 0,
+            tasks: pd.deployment?.tasks || 0,
           },
           {
             id: "maintenance",
             name: "Maintenance",
             description: "Ongoing support",
-            status: getPhaseStatus(phaseData.maintenance.progress, phaseData.maintenance.projects),
-            progress: phaseData.maintenance.progress || 0,
-            tasks: phaseData.maintenance.tasks || 0,
+            status: getPhaseStatus(pd.maintenance?.progress ?? 0, pd.maintenance?.projects ?? 0),
+            progress: pd.maintenance?.progress || 0,
+            tasks: pd.maintenance?.tasks || 0,
           },
         ]);
       }
-    } catch (error) {
-      console.error('Error loading phases:', error);
+    } catch {
     }
   };
 

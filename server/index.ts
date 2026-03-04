@@ -1,3 +1,21 @@
+import { readFileSync } from "fs";
+import { resolve } from "path";
+
+// Load .env file manually (tsx doesn't auto-load it)
+try {
+  const envPath = resolve(process.cwd(), ".env");
+  const lines = readFileSync(envPath, "utf-8").split("\n");
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eq = trimmed.indexOf("=");
+    if (eq === -1) continue;
+    const key = trimmed.slice(0, eq).trim();
+    const val = trimmed.slice(eq + 1).trim().replace(/^["']|["']$/g, "");
+    if (!(key in process.env)) process.env[key] = val;
+  }
+} catch {}
+
 import express from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
@@ -11,6 +29,7 @@ import { generateTestReport } from "./routes/generateTestReport";
 import { syncJira } from "./routes/syncJira";
 import { syncGithub } from "./routes/syncGithub";
 import { captureScreenshot } from "./routes/captureScreenshot";
+import { getProjectStats, getPhaseStats } from "./routes/getStats";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -45,6 +64,8 @@ app.post("/api/generate-test-report", generateTestReport);
 app.post("/api/sync-jira", syncJira);
 app.post("/api/sync-github", syncGithub);
 app.post("/api/capture-screenshot", captureScreenshot);
+app.get("/api/stats", getProjectStats);
+app.get("/api/phase-stats", getPhaseStats);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

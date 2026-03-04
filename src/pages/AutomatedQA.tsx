@@ -52,7 +52,12 @@ const AutomatedQA = () => {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to analyze URL: ${response.status}`);
+        let errMsg = `Request failed (${response.status})`;
+        try {
+          const errBody = await response.json();
+          errMsg = errBody.error || errMsg;
+        } catch {}
+        throw new Error(errMsg);
       }
 
       const reader = response.body?.getReader();
