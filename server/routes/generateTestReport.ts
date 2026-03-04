@@ -61,17 +61,18 @@ export async function generateTestReport(req: Request, res: Response) {
     return res.status(400).json({ error: "Missing required fields" });
   }
 
+  const reportContent = generateSTRReport({ testRunId, testCase, result, duration, timestamp });
+  const fileName = `test-report-${testRunId}-${Date.now()}.str`;
+
   const supabaseUrl = process.env.VITE_SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
   if (!supabaseUrl || !supabaseKey) {
-    return res.status(500).json({ error: "Supabase not configured" });
+    return res.json({ success: true, reportContent, fileName, reportUrl: null });
   }
 
   try {
     const supabase = createClient(supabaseUrl, supabaseKey);
-    const reportContent = generateSTRReport({ testRunId, testCase, result, duration, timestamp });
-
-    const fileName = `test-report-${testRunId}-${Date.now()}.str`;
     const filePath = `reports/${fileName}`;
 
     const { error: uploadError } = await supabase.storage
@@ -79,17 +80,15 @@ export async function generateTestReport(req: Request, res: Response) {
       .upload(filePath, reportContent, { contentType: "text/plain", upsert: false });
 
     if (uploadError) {
-      console.error("Upload error:", uploadError);
-      return res.status(500).json({ error: `Failed to upload report: ${uploadError.message}` });
+      return res.json({ success: true, reportContent, fileName, reportUrl: null });
     }
 
     const { data: urlData } = supabase.storage.from("test-reports").getPublicUrl(filePath);
-
     await supabase.from("test_runs").update({ report_url: urlData.publicUrl }).eq("id", testRunId);
 
     return res.json({ success: true, reportUrl: urlData.publicUrl, fileName });
   } catch (error: any) {
     console.error("Error generating report:", error);
-    return res.status(500).json({ error: error?.message || "Unknown error" });
+    return res.json({ success: true, reportContent, fileName, reportUrl: null });
   }
 }
