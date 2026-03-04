@@ -15,12 +15,10 @@ import { captureScreenshot } from "./routes/captureScreenshot";
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors({
-  origin: process.env.NODE_ENV === "production"
-    ? process.env.ALLOWED_ORIGIN || true
-    : "http://localhost:5000",
-  credentials: true,
-}));
+// Required before rate limiter — Replit sits behind a proxy that sets X-Forwarded-For
+app.set("trust proxy", 1);
+
+app.use(cors({ origin: true, credentials: true }));
 
 app.use(express.json({ limit: "50mb" }));
 
@@ -29,6 +27,7 @@ const limiter = rateLimit({
   max: 100,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
 });
 app.use("/api", limiter);
 
