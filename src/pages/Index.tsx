@@ -6,16 +6,13 @@ import { SDLCPipeline } from "@/components/SDLCPipeline";
 import { TaskList, Task } from "@/components/TaskList";
 import { StatsCards } from "@/components/StatsCards";
 import { ProjectManager } from "@/components/ProjectManager";
-import { Sparkles, Settings, BarChart3, LogOut } from "lucide-react";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 const Index = () => {
   const { toast } = useToast();
-  const { signOut } = useAuth();
   const navigate = useNavigate();
   const [selectedPhase, setSelectedPhase] = useState<string>("all");
   const [stats, setStats] = useState<Array<{
@@ -235,11 +232,6 @@ const Index = () => {
     }
   };
 
-  const handleSignOut = async () => {
-    await signOut();
-    toast({ title: "Signed out", description: "You have been signed out successfully" });
-  };
-
   const [phases, setPhases] = useState([
     {
       id: "planning",
@@ -396,61 +388,22 @@ const Index = () => {
 
   return (
     <div className="min-h-screen">
-      {/* Header */}
-      <header className="glass-premium sticky top-0 z-50 border-b border-border/50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 animate-fade-in">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center glow smooth-transition hover:scale-110">
-                <Settings className="w-6 h-6 text-white animate-spin" style={{ animationDuration: '3s' }} />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold gradient-text">
-                  Settings Automation
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  Making life AI-sier, one automation at a time
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button 
-                onClick={handleGenerateTasks} 
-                className="gap-2"
-                disabled={isGenerating}
-              >
-                <Sparkles className="w-4 h-4" />
-                {isGenerating ? "Generating..." : "Generate Tasks with AI"}
-              </Button>
-              <Button 
-                variant="outline" 
-                className="gap-2"
-                onClick={() => navigate("/automated-qa")}
-              >
-                <Sparkles className="w-4 h-4" />
-                Automated QA
-              </Button>
-              <ThemeToggle />
-              <Button 
-                variant="outline" 
-                className="gap-2"
-                onClick={() => navigate("/qa-testing")}
-              >
-                <BarChart3 className="w-4 h-4" />
-                QA Settings
-              </Button>
-              <Button 
-                variant="ghost"
-                onClick={handleSignOut}
-              >
-                <LogOut className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
       <main className="container mx-auto px-4 py-8 space-y-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">Projects, pipeline & task management</p>
+          </div>
+          <Button
+            onClick={handleGenerateTasks}
+            className="gap-2"
+            disabled={isGenerating}
+            data-testid="button-generate-tasks"
+          >
+            <Sparkles className="w-4 h-4" />
+            {isGenerating ? "Generating..." : "Generate Tasks"}
+          </Button>
+        </div>
         {/* Stats */}
         <div className="animate-fade-in">
           <StatsCards stats={stats} />

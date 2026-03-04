@@ -8,25 +8,17 @@ import { TestExecutionDashboard } from "@/components/qa/TestExecutionDashboard";
 import { TestReportsLibrary } from "@/components/qa/TestReportsLibrary";
 import { FuzzTestingPanel } from "@/components/qa/FuzzTestingPanel";
 import { LoadTestingPanel } from "@/components/qa/LoadTestingPanel";
-import { Sparkles, LogOut, Settings, Zap, FileCheck, Activity } from "lucide-react";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { Sparkles, FileCheck, Activity, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
 
 const AutomatedQA = () => {
   const { toast } = useToast();
-  const { signOut } = useAuth();
   const [qaReport, setQaReport] = useState<any>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [url, setUrl] = useState('');
   const [progress, setProgress] = useState(0);
   const [progressMessage, setProgressMessage] = useState('');
-
-  const handleSignOut = async () => {
-    await signOut();
-    toast({ title: "Signed out", description: "You have been signed out successfully" });
-  };
 
   const handleUrlAnalysis = async () => {
     if (!url.trim()) {
@@ -358,47 +350,11 @@ const AutomatedQA = () => {
 
   return (
     <div className="min-h-screen">
-      <header className="glass-premium sticky top-0 z-50 border-b border-border/50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 animate-fade-in">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center glow smooth-transition hover:scale-110">
-                <Sparkles className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold gradient-text">
-                  Automated QA Testing
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  AI-powered test generation from your project files
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                onClick={() => window.location.href = '/'}
-              >
-                Back to Dashboard
-              </Button>
-              <ThemeToggle />
-              <Button
-                variant="outline"
-                onClick={() => window.location.href = '/qa-testing'}
-              >
-                <Settings className="w-4 h-4 mr-2" />
-                QA Settings
-              </Button>
-              <Button variant="ghost" onClick={handleSignOut}>
-                <LogOut className="w-4 h-4 mr-2" />
-                Sign Out
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
       <main className="container mx-auto px-4 py-8">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold tracking-tight">Automated QA</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">AI-powered test generation and load testing</p>
+        </div>
         <Tabs defaultValue="upload" className="space-y-6">
           <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="upload">Upload & Test</TabsTrigger>

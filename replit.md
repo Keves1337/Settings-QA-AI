@@ -62,6 +62,20 @@ All AI routes return high-quality template responses when no `OPENAI_API_KEY` is
 | `/api/sync-github` | POST | Sync bug to GitHub Issues |
 | `/api/capture-screenshot` | POST | Upload bug screenshot to Supabase Storage |
 
+## UI Design System
+- **Professional blue/slate theme** — replaced original teal glassmorphism
+- **Sidebar navigation** (`src/components/AppSidebar.tsx`) using shadcn `<Sidebar>` with `SidebarProvider` in `App.tsx`
+- Pages (`Index`, `QATesting`, `AutomatedQA`) have inline page titles; no sticky headers
+- Dark/light mode via CSS custom properties in `src/index.css`
+- Theme toggle and Sign out button live in the sidebar footer
+
+## Load Testing Limits
+`/api/load-testing` accepts:
+- `totalRequests`: max **10,000** (up from 500)
+- `concurrentRequests`: max **500** (up from 25)
+- Per-request timeout: **30 seconds** (up from 10s)
+- Returns status code breakdown and up to 50 error messages
+
 ## Running the App
 ```
 npm run dev

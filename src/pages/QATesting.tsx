@@ -1,56 +1,20 @@
-import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { TestCaseManager } from "@/components/qa/TestCaseManager";
 import { TestExecutionPanel } from "@/components/qa/TestExecutionPanel";
 import { BugTracker } from "@/components/qa/BugTracker";
 import { IntegrationSettings } from "@/components/qa/IntegrationSettings";
 import { LoadTestingPanel } from "@/components/qa/LoadTestingPanel";
-import { FlaskConical, Play, Bug, Settings, LogOut, Activity } from "lucide-react";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
+import { FlaskConical, Play, Bug, Settings, Activity } from "lucide-react";
 
 const QATesting = () => {
-  const { toast } = useToast();
-  const { signOut } = useAuth();
-
-  const handleSignOut = async () => {
-    await signOut();
-    toast({ title: "Signed out", description: "You have been signed out successfully" });
-  };
-
   return (
     <div className="min-h-screen">
-      <header className="glass-premium sticky top-0 z-50 border-b border-border/50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 animate-fade-in">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center glow smooth-transition hover:scale-110">
-                <FlaskConical className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold gradient-text">
-                  QA Testing Automation
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  Comprehensive testing & bug tracking with Jira/GitHub integration
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <ThemeToggle />
-              <Button variant="outline" onClick={handleSignOut} className="gap-2">
-                <LogOut className="w-4 h-4" />
-                Sign Out
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
       <main className="container mx-auto px-4 py-8">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold tracking-tight">QA Testing</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Test cases, bug tracking & integrations</p>
+        </div>
         <Card className="p-6">
           <Tabs defaultValue="test-cases" className="space-y-6">
             <TabsList className="grid w-full grid-cols-5">
