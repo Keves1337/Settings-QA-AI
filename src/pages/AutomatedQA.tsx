@@ -11,10 +11,11 @@ import { LoadTestingPanel } from "@/components/qa/LoadTestingPanel";
 import { Sparkles, LogOut, Settings, Zap, FileCheck, Activity } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const AutomatedQA = () => {
   const { toast } = useToast();
+  const { signOut } = useAuth();
   const [qaReport, setQaReport] = useState<any>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
@@ -23,11 +24,8 @@ const AutomatedQA = () => {
   const [progressMessage, setProgressMessage] = useState('');
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    toast({
-      title: "Signed out",
-      description: "You have been signed out successfully",
-    });
+    await signOut();
+    toast({ title: "Signed out", description: "You have been signed out successfully" });
   };
 
   const handleUrlAnalysis = async () => {

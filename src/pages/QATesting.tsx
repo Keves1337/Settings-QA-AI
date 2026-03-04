@@ -9,18 +9,16 @@ import { IntegrationSettings } from "@/components/qa/IntegrationSettings";
 import { LoadTestingPanel } from "@/components/qa/LoadTestingPanel";
 import { FlaskConical, Play, Bug, Settings, LogOut, Activity } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
 const QATesting = () => {
   const { toast } = useToast();
+  const { signOut } = useAuth();
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    toast({
-      title: "Signed out",
-      description: "You have been signed out successfully",
-    });
+    await signOut();
+    toast({ title: "Signed out", description: "You have been signed out successfully" });
   };
 
   return (

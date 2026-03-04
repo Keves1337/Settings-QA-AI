@@ -10,10 +10,12 @@ import { Sparkles, Settings, BarChart3, LogOut } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 const Index = () => {
   const { toast } = useToast();
+  const { session, signOut } = useAuth();
   const navigate = useNavigate();
   const [selectedPhase, setSelectedPhase] = useState<string>("all");
   const [stats, setStats] = useState<Array<{
@@ -238,11 +240,8 @@ const Index = () => {
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    toast({
-      title: "Signed out",
-      description: "You have been signed out successfully",
-    });
+    await signOut();
+    toast({ title: "Signed out", description: "You have been signed out successfully" });
   };
 
   const [phases, setPhases] = useState([
@@ -311,9 +310,13 @@ const Index = () => {
   const handleGenerateTasks = async () => {
     setIsGenerating(true);
     try {
+      const token = session?.access_token;
       const res = await fetch("/api/generate-tasks", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           phase: selectedPhase,
           existingTasks: tasks.map(t => ({ title: t.title, phase: t.phase })),
