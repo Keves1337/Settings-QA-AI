@@ -67,6 +67,10 @@ export function AppSidebar() {
             <p className="truncate text-xs text-muted-foreground">Testing & Automation</p>
           </div>
         </div>
+        <p className="mt-3 text-[10px] leading-tight text-muted-foreground/60">
+          Designed, built &amp; tested by{" "}
+          <span className="font-medium text-muted-foreground/80">Johnatan Milrad</span>
+        </p>
       </SidebarHeader>
 
       <SidebarSeparator />
@@ -111,10 +115,6 @@ export function AppSidebar() {
             <span className="text-xs">Sign out</span>
           </SidebarMenuButton>
         </div>
-        <p className="mt-3 px-1 text-center text-[10px] leading-tight text-muted-foreground/60">
-          Designed, built &amp; tested by<br />
-          <span className="font-medium text-muted-foreground/80">Johnatan Milrad</span>
-        </p>
       </SidebarFooter>
     </Sidebar>
   );
