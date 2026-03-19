@@ -2,7 +2,10 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 
+const isGitHubPages = process.env.GITHUB_ACTIONS === "true";
+
 export default defineConfig(() => ({
+  base: isGitHubPages ? "/Settings-QA-AI/" : "/",
   server: {
     host: "0.0.0.0",
     port: 5000,
