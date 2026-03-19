@@ -111,6 +111,10 @@ export function AppSidebar() {
             <span className="text-xs">Sign out</span>
           </SidebarMenuButton>
         </div>
+        <p className="mt-3 px-1 text-center text-[10px] leading-tight text-muted-foreground/60">
+          Designed, built &amp; tested by<br />
+          <span className="font-medium text-muted-foreground/80">Johnatan Milrad</span>
+        </p>
       </SidebarFooter>
     </Sidebar>
   );
