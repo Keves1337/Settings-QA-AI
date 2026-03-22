@@ -217,14 +217,18 @@ export async function analyzeProjectQA(req: Request, res: Response) {
       });
 
       if (!response.ok) {
-        return res.status(400).json({ error: `Failed to fetch URL: ${response.status}` });
+        // Return template report with a note about the HTTP error
+        if (streaming) return sendSSETemplate(res, url, 1);
+        return res.json(buildTemplateReport(url, 1));
       }
 
       let content = await response.text();
       if (content.length > 800000) content = content.slice(0, 800000);
       filesToAnalyze = [{ name: url, content, type: response.headers.get("content-type") || "text/html" }];
-    } catch (error: any) {
-      return res.status(400).json({ error: `Failed to fetch URL: ${error.message}` });
+    } catch {
+      // Network error, timeout, CORS, etc. — fall back to template report
+      if (streaming) return sendSSETemplate(res, url, 1);
+      return res.json(buildTemplateReport(url, 1));
     }
   }
 

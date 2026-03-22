@@ -19,7 +19,6 @@ import {
   ShieldCheck,
   LogOut,
 } from "lucide-react";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -103,8 +102,7 @@ export function AppSidebar() {
 
       <SidebarFooter className="p-3">
         <SidebarSeparator className="mb-3" />
-        <div className="flex items-center justify-between px-1">
-          <ThemeToggle />
+        <div className="flex items-center justify-end px-1">
           <SidebarMenuButton
             onClick={handleSignOut}
             className="w-auto gap-2 text-muted-foreground hover:text-destructive"
