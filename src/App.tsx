@@ -20,16 +20,80 @@ const queryClient = new QueryClient({
   },
 });
 
+function AmbientBackground() {
+  return (
+    <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+      <div
+        className="blob"
+        style={{
+          width: "55%", height: "55%",
+          top: "-15%", left: "-10%",
+          background: "radial-gradient(ellipse, rgba(109,40,217,0.18) 0%, transparent 70%)",
+          animationDuration: "14s",
+        }}
+      />
+      <div
+        className="blob"
+        style={{
+          width: "45%", height: "45%",
+          top: "20%", right: "-12%",
+          background: "radial-gradient(ellipse, rgba(59,130,246,0.14) 0%, transparent 70%)",
+          animationDuration: "18s",
+          animationDelay: "-4s",
+        }}
+      />
+      <div
+        className="blob"
+        style={{
+          width: "40%", height: "40%",
+          bottom: "-10%", left: "25%",
+          background: "radial-gradient(ellipse, rgba(139,92,246,0.12) 0%, transparent 70%)",
+          animationDuration: "16s",
+          animationDelay: "-8s",
+        }}
+      />
+      <div
+        className="blob"
+        style={{
+          width: "30%", height: "30%",
+          top: "55%", left: "5%",
+          background: "radial-gradient(ellipse, rgba(20,184,166,0.10) 0%, transparent 70%)",
+          animationDuration: "20s",
+          animationDelay: "-2s",
+        }}
+      />
+      <div
+        className="blob"
+        style={{
+          width: "25%", height: "25%",
+          top: "10%", left: "45%",
+          background: "radial-gradient(ellipse, rgba(236,72,153,0.08) 0%, transparent 70%)",
+          animationDuration: "22s",
+          animationDelay: "-11s",
+        }}
+      />
+    </div>
+  );
+}
+
 function AppLayout() {
   return (
     <SidebarProvider>
       <div className="flex h-screen w-full overflow-hidden">
         <AppSidebar />
         <div className="flex flex-1 flex-col overflow-hidden">
-          <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border bg-background/95 px-4 backdrop-blur">
-            <SidebarTrigger data-testid="button-sidebar-toggle" className="-ml-1" />
-            <div className="h-4 w-px bg-border" />
-            <span className="text-xs text-muted-foreground">QA Testing Platform</span>
+          <header
+            className="flex h-12 shrink-0 items-center gap-2 px-4"
+            style={{
+              background: "rgba(255,255,255,0.04)",
+              backdropFilter: "blur(24px) saturate(180%)",
+              WebkitBackdropFilter: "blur(24px) saturate(180%)",
+              borderBottom: "1px solid rgba(255,255,255,0.07)",
+            }}
+          >
+            <SidebarTrigger data-testid="button-sidebar-toggle" className="-ml-1 text-white/60 hover:text-white/90" />
+            <div className="h-4 w-px" style={{ background: "rgba(255,255,255,0.12)" }} />
+            <span className="text-xs font-medium" style={{ color: "rgba(255,255,255,0.45)" }}>QA Testing Platform</span>
           </header>
           <main className="flex-1 overflow-y-auto">
             <Routes>
@@ -55,6 +119,7 @@ const App = () => (
           basename={import.meta.env.BASE_URL.replace(/\/$/, "") || "/"}
           future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
         >
+          <AmbientBackground />
           <AppLayout />
         </BrowserRouter>
       </TooltipProvider>

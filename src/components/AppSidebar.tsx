@@ -55,7 +55,12 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar>
+    <Sidebar className="border-r-0" style={{
+      background: "rgba(255,255,255,0.03)",
+      backdropFilter: "blur(32px) saturate(180%)",
+      WebkitBackdropFilter: "blur(32px) saturate(180%)",
+      borderRight: "1px solid rgba(255,255,255,0.07)",
+    }}>
       <SidebarHeader className="px-4 py-5">
         <div className="flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
