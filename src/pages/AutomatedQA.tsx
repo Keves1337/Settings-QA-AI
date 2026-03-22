@@ -19,6 +19,7 @@ const AutomatedQA = () => {
   const [url, setUrl] = useState('');
   const [progress, setProgress] = useState(0);
   const [progressMessage, setProgressMessage] = useState('');
+  const [activeTab, setActiveTab] = useState('upload');
 
   const handleUrlAnalysis = async () => {
     if (!url.trim()) {
@@ -152,6 +153,7 @@ const AutomatedQA = () => {
       }
 
       setQaReport(finalData);
+      setActiveTab('report');
       setProgress(100);
       setProgressMessage('Analysis complete!');
       
@@ -318,6 +320,7 @@ const AutomatedQA = () => {
       }
 
       setQaReport(data);
+      setActiveTab('report');
       setProgress(100);
       setProgressMessage('Analysis complete!');
       
@@ -355,7 +358,7 @@ const AutomatedQA = () => {
           <h1 className="text-2xl font-bold tracking-tight">Automated QA</h1>
           <p className="text-sm text-muted-foreground mt-0.5">AI-powered test generation and load testing</p>
         </div>
-        <Tabs defaultValue="upload" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="upload">Upload & Test</TabsTrigger>
             <TabsTrigger value="load-testing" className="gap-2">
