@@ -15,9 +15,9 @@
     --popover-foreground: 210 25% 92%;
 
     /* Primary — Electric Blue */
-    --primary: 213 94% 65%;
-    --primary-foreground: 224 28% 5%;
-    --primary-glow: 213 94% 65%;
+    --primary: 213 88% 58%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 213 88% 58%;
 
     /* Secondary */
     --secondary: 224 22% 13%;
@@ -63,8 +63,8 @@
     /* Sidebar */
     --sidebar-background: 224 28% 4%;
     --sidebar-foreground: 210 25% 88%;
-    --sidebar-primary: 213 94% 65%;
-    --sidebar-primary-foreground: 224 28% 5%;
+    --sidebar-primary: 213 88% 58%;
+    --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 224 22% 11%;
     --sidebar-accent-foreground: 210 25% 92%;
     --sidebar-border: 220 18% 13%;
@@ -83,9 +83,9 @@
     --popover: 224 24% 8%;
     --popover-foreground: 210 25% 92%;
 
-    --primary: 213 94% 65%;
-    --primary-foreground: 224 28% 5%;
-    --primary-glow: 213 94% 65%;
+    --primary: 213 88% 58%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 213 88% 58%;
 
     --secondary: 224 22% 13%;
     --secondary-foreground: 210 25% 85%;
@@ -123,8 +123,8 @@
 
     --sidebar-background: 224 28% 4%;
     --sidebar-foreground: 210 25% 88%;
-    --sidebar-primary: 213 94% 65%;
-    --sidebar-primary-foreground: 224 28% 5%;
+    --sidebar-primary: 213 88% 58%;
+    --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 224 22% 11%;
     --sidebar-accent-foreground: 210 25% 92%;
     --sidebar-border: 220 18% 13%;
