@@ -388,15 +388,15 @@ const Index = () => {
 
   return (
     <div className="min-h-screen">
-      <main className="container mx-auto px-4 py-8 space-y-8">
-        <div className="flex items-center justify-between">
+      <main className="container mx-auto px-4 py-6 sm:py-8 space-y-6 sm:space-y-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
             <p className="text-sm text-muted-foreground mt-0.5">Projects, pipeline & task management</p>
           </div>
           <Button
             onClick={handleGenerateTasks}
-            className="gap-2"
+            className="gap-2 self-start sm:self-auto"
             disabled={isGenerating}
             data-testid="button-generate-tasks"
           >
@@ -428,24 +428,36 @@ const Index = () => {
         </div>
 
         {/* Tasks */}
-        <Card className="p-6 animate-fade-in" style={{ animationDelay: '0.3s' }}>
+        <Card className="p-4 sm:p-6 animate-fade-in" style={{ animationDelay: '0.3s' }}>
           <Tabs defaultValue="all" value={selectedPhase} onValueChange={setSelectedPhase}>
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
               <div>
-                <h2 className="text-2xl font-bold">Tasks</h2>
-                <p className="text-muted-foreground">
+                <h2 className="text-xl sm:text-2xl font-bold">Tasks</h2>
+                <p className="text-muted-foreground text-sm">
                   {filteredTasks.length} tasks
                 </p>
               </div>
-              <TabsList className="flex flex-wrap h-auto">
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="planning">Planning</TabsTrigger>
-                <TabsTrigger value="requirements">Requirements</TabsTrigger>
-                <TabsTrigger value="design">Design</TabsTrigger>
-                <TabsTrigger value="development">Development</TabsTrigger>
-                <TabsTrigger value="testing">Testing</TabsTrigger>
-                <TabsTrigger value="deployment">Deployment</TabsTrigger>
-                <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
+              <TabsList className="flex overflow-x-auto h-auto p-1 flex-nowrap scrollbar-none w-full sm:w-auto">
+                <TabsTrigger value="all" className="flex-shrink-0 text-xs sm:text-sm px-2.5 py-1.5">All</TabsTrigger>
+                <TabsTrigger value="planning" className="flex-shrink-0 text-xs sm:text-sm px-2.5 py-1.5">Planning</TabsTrigger>
+                <TabsTrigger value="requirements" className="flex-shrink-0 text-xs sm:text-sm px-2.5 py-1.5">
+                  <span className="hidden sm:inline">Requirements</span>
+                  <span className="sm:hidden">Req.</span>
+                </TabsTrigger>
+                <TabsTrigger value="design" className="flex-shrink-0 text-xs sm:text-sm px-2.5 py-1.5">Design</TabsTrigger>
+                <TabsTrigger value="development" className="flex-shrink-0 text-xs sm:text-sm px-2.5 py-1.5">
+                  <span className="hidden sm:inline">Development</span>
+                  <span className="sm:hidden">Dev</span>
+                </TabsTrigger>
+                <TabsTrigger value="testing" className="flex-shrink-0 text-xs sm:text-sm px-2.5 py-1.5">Testing</TabsTrigger>
+                <TabsTrigger value="deployment" className="flex-shrink-0 text-xs sm:text-sm px-2.5 py-1.5">
+                  <span className="hidden sm:inline">Deployment</span>
+                  <span className="sm:hidden">Deploy</span>
+                </TabsTrigger>
+                <TabsTrigger value="maintenance" className="flex-shrink-0 text-xs sm:text-sm px-2.5 py-1.5">
+                  <span className="hidden sm:inline">Maintenance</span>
+                  <span className="sm:hidden">Maint.</span>
+                </TabsTrigger>
               </TabsList>
             </div>
             <TabsContent value={selectedPhase} className="mt-0">

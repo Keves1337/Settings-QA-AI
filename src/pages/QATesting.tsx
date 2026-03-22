@@ -15,28 +15,31 @@ const QATesting = () => {
           <h1 className="text-2xl font-bold tracking-tight">QA Testing</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Test cases, bug tracking & integrations</p>
         </div>
-        <Card className="p-6">
+        <Card className="p-4 sm:p-6">
           <Tabs defaultValue="test-cases" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="test-cases" className="gap-2">
-                <FlaskConical className="w-4 h-4" />
-                Test Cases
+            <TabsList className="flex w-full overflow-x-auto h-auto gap-0 p-1 flex-nowrap scrollbar-none">
+              <TabsTrigger value="test-cases" className="flex-shrink-0 gap-1.5 px-2.5 py-1.5 text-xs sm:text-sm sm:px-3">
+                <FlaskConical className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="hidden sm:inline">Test Cases</span>
+                <span className="sm:hidden">Tests</span>
               </TabsTrigger>
-              <TabsTrigger value="execution" className="gap-2">
-                <Play className="w-4 h-4" />
-                Execution
+              <TabsTrigger value="execution" className="flex-shrink-0 gap-1.5 px-2.5 py-1.5 text-xs sm:text-sm sm:px-3">
+                <Play className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>Execution</span>
               </TabsTrigger>
-              <TabsTrigger value="bugs" className="gap-2">
-                <Bug className="w-4 h-4" />
-                Bugs
+              <TabsTrigger value="bugs" className="flex-shrink-0 gap-1.5 px-2.5 py-1.5 text-xs sm:text-sm sm:px-3">
+                <Bug className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>Bugs</span>
               </TabsTrigger>
-              <TabsTrigger value="load-testing" className="gap-2">
-                <Activity className="w-4 h-4" />
-                Load Testing
+              <TabsTrigger value="load-testing" className="flex-shrink-0 gap-1.5 px-2.5 py-1.5 text-xs sm:text-sm sm:px-3">
+                <Activity className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="hidden sm:inline">Load Testing</span>
+                <span className="sm:hidden">Load</span>
               </TabsTrigger>
-              <TabsTrigger value="settings" className="gap-2">
-                <Settings className="w-4 h-4" />
-                Integrations
+              <TabsTrigger value="settings" className="flex-shrink-0 gap-1.5 px-2.5 py-1.5 text-xs sm:text-sm sm:px-3">
+                <Settings className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="hidden sm:inline">Integrations</span>
+                <span className="sm:hidden">Config</span>
               </TabsTrigger>
             </TabsList>
 

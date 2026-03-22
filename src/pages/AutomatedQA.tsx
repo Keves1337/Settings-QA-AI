@@ -359,18 +359,30 @@ const AutomatedQA = () => {
           <p className="text-sm text-muted-foreground mt-0.5">AI-powered test generation and load testing</p>
         </div>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="upload">Upload & Test</TabsTrigger>
-            <TabsTrigger value="load-testing" className="gap-2">
-              <Activity className="w-4 h-4" />
-              Load Testing
+          <TabsList className="flex w-full overflow-x-auto h-auto gap-0 p-1 flex-nowrap scrollbar-none">
+            <TabsTrigger value="upload" className="flex-shrink-0 gap-1.5 px-2.5 py-1.5 text-xs sm:text-sm sm:px-3">
+              <Sparkles className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="hidden sm:inline">Upload & Test</span>
+              <span className="sm:hidden">Upload</span>
             </TabsTrigger>
-            <TabsTrigger value="report" className="gap-2">
-              <FileCheck className="w-4 h-4" />
-              Test Report
+            <TabsTrigger value="load-testing" className="flex-shrink-0 gap-1.5 px-2.5 py-1.5 text-xs sm:text-sm sm:px-3">
+              <Activity className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="hidden sm:inline">Load Testing</span>
+              <span className="sm:hidden">Load</span>
             </TabsTrigger>
-            <TabsTrigger value="execution">Test Execution</TabsTrigger>
-            <TabsTrigger value="reports">STR Reports</TabsTrigger>
+            <TabsTrigger value="report" className="flex-shrink-0 gap-1.5 px-2.5 py-1.5 text-xs sm:text-sm sm:px-3">
+              <FileCheck className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="hidden sm:inline">Test Report</span>
+              <span className="sm:hidden">Report</span>
+            </TabsTrigger>
+            <TabsTrigger value="execution" className="flex-shrink-0 gap-1.5 px-2.5 py-1.5 text-xs sm:text-sm sm:px-3">
+              <span className="hidden sm:inline">Test Execution</span>
+              <span className="sm:hidden">Execution</span>
+            </TabsTrigger>
+            <TabsTrigger value="reports" className="flex-shrink-0 gap-1.5 px-2.5 py-1.5 text-xs sm:text-sm sm:px-3">
+              <span className="hidden sm:inline">STR Reports</span>
+              <span className="sm:hidden">Reports</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="upload" className="space-y-6">
@@ -382,18 +394,19 @@ const AutomatedQA = () => {
                     Enter a URL to instantly fetch and analyze its content
                   </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <input
                     type="url"
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
                     placeholder="https://example.com"
-                    className="flex-1 px-3 py-2 rounded-md border border-border bg-background"
+                    className="flex-1 min-w-0 px-3 py-2 rounded-md border border-border bg-background text-sm"
                     disabled={isGenerating}
                   />
                   <Button 
                     onClick={handleUrlAnalysis}
                     disabled={isGenerating || !url.trim()}
+                    className="shrink-0"
                   >
                     <Zap className="w-4 h-4 mr-2" />
                     Analyze URL
