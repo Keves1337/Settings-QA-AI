@@ -8,8 +8,24 @@ import { TestExecutionDashboard } from "@/components/qa/TestExecutionDashboard";
 import { TestReportsLibrary } from "@/components/qa/TestReportsLibrary";
 import { FuzzTestingPanel } from "@/components/qa/FuzzTestingPanel";
 import { LoadTestingPanel } from "@/components/qa/LoadTestingPanel";
-import { Sparkles, FileCheck, Activity, Zap } from "lucide-react";
+import { Sparkles, FileCheck, Activity, Zap, AlertTriangle, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
+const IS_STATIC_DEPLOY =
+  typeof window !== "undefined" &&
+  (window.location.hostname.includes("github.io") ||
+    window.location.hostname.includes("pages.dev") ||
+    window.location.hostname.includes("netlify.app"));
+
+function apiErrorMessage(status: number): string {
+  if (status === 405 || status === 404) {
+    return "The AI analysis features require a live backend server, which isn't available on the static GitHub Pages version. Run the app locally or on Replit to use this feature.";
+  }
+  if (status === 0 || status === undefined) {
+    return "Network error — could not reach the server. Make sure the backend is running.";
+  }
+  return `Server error (${status}). Please try again.`;
+}
 
 const AutomatedQA = () => {
   const { toast } = useToast();
@@ -45,10 +61,13 @@ const AutomatedQA = () => {
       });
 
       if (!response.ok) {
-        let errMsg = `Request failed (${response.status})`;
+        if (response.status === 405 || response.status === 404) {
+          throw new Error(apiErrorMessage(response.status));
+        }
+        let errMsg = apiErrorMessage(response.status);
         try {
           const errBody = await response.json();
-          errMsg = errBody.error || errMsg;
+          if (errBody.error && response.status !== 405) errMsg = errBody.error;
         } catch {}
         throw new Error(errMsg);
       }
@@ -251,7 +270,7 @@ const AutomatedQA = () => {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to analyze files: ${response.status}`);
+        throw new Error(apiErrorMessage(response.status));
       }
 
       const reader = response.body?.getReader();
@@ -358,6 +377,30 @@ const AutomatedQA = () => {
           <h1 className="text-2xl font-bold tracking-tight">Automated QA</h1>
           <p className="text-sm text-muted-foreground mt-0.5">AI-powered test generation and load testing</p>
         </div>
+
+        {IS_STATIC_DEPLOY && (
+          <div className="mb-5 flex items-start gap-3 rounded-xl border border-yellow-500/30 bg-yellow-500/8 px-4 py-3.5">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-yellow-400" />
+            <div className="space-y-1 text-sm">
+              <p className="font-semibold text-yellow-300">Backend features unavailable on this deployment</p>
+              <p className="text-yellow-400/80 text-xs leading-relaxed">
+                AI analysis, load testing, and file scanning require a live server.
+                This GitHub Pages version is a <strong className="text-yellow-300">frontend-only demo</strong>.
+                To use all features, open the app on{" "}
+                <a
+                  href="https://replit.com/@milradjohnathan/Settings-QA-AI"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 underline text-yellow-300 hover:text-yellow-200"
+                >
+                  Replit <ExternalLink className="w-3 h-3" />
+                </a>
+                .
+              </p>
+            </div>
+          </div>
+        )}
+
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="flex w-full overflow-x-auto h-auto gap-0 p-1 flex-nowrap scrollbar-none">
             <TabsTrigger value="upload" className="flex-shrink-0 gap-1.5 px-2.5 py-1.5 text-xs sm:text-sm sm:px-3">
