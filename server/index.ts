@@ -1,5 +1,5 @@
-import { readFileSync } from "fs";
-import { resolve } from "path";
+import { readFileSync, existsSync } from "fs";
+import { resolve, join } from "path";
 
 // Load .env file manually (tsx doesn't auto-load it)
 try {
@@ -67,6 +67,16 @@ app.post("/api/sync-github", syncGithub);
 app.post("/api/capture-screenshot", captureScreenshot);
 app.get("/api/stats", getProjectStats);
 app.get("/api/phase-stats", getPhaseStats);
+
+// Serve built frontend in production
+const distPath = join(process.cwd(), "dist");
+if (existsSync(distPath)) {
+  app.use(express.static(distPath));
+  // SPA fallback — send index.html for any non-API route
+  app.get("*", (_req, res) => {
+    res.sendFile(join(distPath, "index.html"));
+  });
+}
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
