@@ -388,7 +388,7 @@ const AutomatedQA = () => {
                 This GitHub Pages version is a <strong className="text-yellow-300">frontend-only demo</strong>.
                 To use all features, open the app on{" "}
                 <a
-                  href="https://replit.com/@milradjohnathan/Settings-QA-AI"
+                  href="https://settings-qa-ai.replit.app"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 underline text-yellow-300 hover:text-yellow-200"
