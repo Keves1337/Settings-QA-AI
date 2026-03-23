@@ -31,6 +31,7 @@ import { syncGithub } from "./routes/syncGithub";
 import { captureScreenshot } from "./routes/captureScreenshot";
 import { getProjectStats, getPhaseStats } from "./routes/getStats";
 import { loginHandler } from "./routes/auth";
+import { generateDDoSCountermeasures } from "./routes/ddosCountermeasures";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -79,6 +80,7 @@ app.post("/api/sync-github", syncGithub);
 app.post("/api/capture-screenshot", captureScreenshot);
 app.get("/api/stats", getProjectStats);
 app.get("/api/phase-stats", getPhaseStats);
+app.post("/api/ddos-countermeasures", generateDDoSCountermeasures);
 
 // Serve built frontend in production
 const distPath = join(process.cwd(), "dist");

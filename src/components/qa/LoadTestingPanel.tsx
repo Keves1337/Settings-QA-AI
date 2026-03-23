@@ -24,6 +24,8 @@ import {
   Shuffle,
   OctagonX,
   ShieldAlert,
+  ShieldCheck,
+  Download,
 } from "lucide-react";
 
 interface LoadTestResult {
@@ -73,9 +75,47 @@ export const LoadTestingPanel = () => {
   const [results, setResults] = useState<LoadTestResult | null>(null);
   const [wasStopped, setWasStopped] = useState(false);
 
+  const [generatingReport, setGeneratingReport] = useState(false);
   const fetchControllerRef = useRef<AbortController | null>(null);
   const sessionIdRef = useRef<string | null>(null);
   const { toast } = useToast();
+
+  const generateCountermeasures = async () => {
+    if (!results || !url) return;
+    setGeneratingReport(true);
+    try {
+      const res = await fetch("/api/ddos-countermeasures", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url, results }),
+      });
+      if (!res.ok) throw new Error("Generation failed");
+      const data = await res.json();
+
+      // Trigger file download
+      const blob = new Blob([data.report], { type: "text/plain;charset=utf-8" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = data.filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+
+      toast({
+        title: "Countermeasures Report Generated",
+        description: `${data.filename} downloaded — ready to deploy.`,
+      });
+    } catch {
+      toast({
+        title: "Generation Failed",
+        description: "Could not generate the countermeasures report. Try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingReport(false);
+    }
+  };
 
   const maxTotal = attackMode ? 50000 : 10000;
   const maxConcurrent = attackMode ? 2000 : 500;
@@ -680,6 +720,47 @@ export const LoadTestingPanel = () => {
                 ))}
               </div>
             </div>
+          )}
+
+          {results.attackMode && (
+            <>
+              <Separator className="my-4" />
+              <div className="rounded-xl border border-violet-500/20 bg-violet-500/5 p-4">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-500/10 border border-violet-500/20 shrink-0">
+                    <ShieldCheck className="h-5 w-5 text-violet-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-violet-300">Countermeasures Report</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Generate a tailored security hardening file for{" "}
+                      <span className="font-mono text-violet-400">
+                        {(() => { try { return new URL(url).hostname; } catch { return url; } })()}
+                      </span>{" "}
+                      — includes Nginx rules, Express middleware, iptables, Cloudflare WAF, and emergency playbook. All thresholds derived from this attack's data.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  data-testid="button-generate-countermeasures"
+                  onClick={generateCountermeasures}
+                  disabled={generatingReport}
+                  className="w-full gap-2 bg-violet-600 hover:bg-violet-700 text-white border-0"
+                >
+                  {generatingReport ? (
+                    <>
+                      <Activity className="w-4 h-4 animate-spin" />
+                      Generating countermeasures…
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4" />
+                      Download Countermeasures Report (.txt)
+                    </>
+                  )}
+                </Button>
+              </div>
+            </>
           )}
         </Card>
       )}
