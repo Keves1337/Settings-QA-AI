@@ -76,8 +76,6 @@ export default function Login() {
   const [shaking, setShaking] = useState(false);
   const [featureIdx, setFeatureIdx] = useState(0);
   const [visible, setVisible] = useState(true);
-  const [toasts, setToasts] = useState<{ id: number; idx: number }[]>([]);
-  const [toastCounter, setToastCounter] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -90,22 +88,6 @@ export default function Login() {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    const scheduleNext = () => {
-      const delay = 1600 + Math.random() * 1400;
-      return setTimeout(() => {
-        const rand = Math.floor(Math.random() * FEATURES.length);
-        const id = Date.now();
-        setToastCounter(c => c + 1);
-        setToasts(q => {
-          const next = [...q.slice(-2), { id, idx: rand }];
-          return next;
-        });
-      }, delay);
-    };
-    const t = scheduleNext();
-    return () => clearTimeout(t);
-  }, [toastCounter]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,49 +124,6 @@ export default function Login() {
           background: "radial-gradient(ellipse, rgba(139,92,246,0.14) 0%, transparent 70%)",
           animationDuration: "16s", animationDelay: "-8s",
         }} />
-      </div>
-
-      {/* Floating feature toasts (top-right) */}
-      <div className="fixed top-6 right-6 flex flex-col gap-3 pointer-events-none" style={{ zIndex: 20, maxWidth: 280 }}>
-        {toasts.map((t, i) => {
-          const f = FEATURES[t.idx];
-          const Icon = f.icon;
-          return (
-            <div
-              key={t.id}
-              style={{
-                background: "rgba(255,255,255,0.05)",
-                backdropFilter: "blur(20px)",
-                border: `1px solid ${f.color}44`,
-                borderRadius: 12,
-                padding: "10px 14px",
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                boxShadow: `0 0 20px ${f.glow}`,
-                opacity: i === toasts.length - 1 ? 1 : 0.45,
-                transform: `scale(${i === toasts.length - 1 ? 1 : 0.94})`,
-                transition: "all 0.4s ease",
-                animation: "toastSlideIn 0.4s ease forwards",
-              }}
-            >
-              <div style={{
-                width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-                background: `${f.color}22`,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                border: `1px solid ${f.color}44`,
-              }}>
-                <Icon size={16} style={{ color: f.color }} />
-              </div>
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 600, color: f.color, lineHeight: 1.2 }}>{f.title}</div>
-                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", lineHeight: 1.3, marginTop: 2 }}>
-                  {f.desc.slice(0, 58)}…
-                </div>
-              </div>
-            </div>
-          );
-        })}
       </div>
 
       {/* Main content */}
@@ -438,10 +377,6 @@ export default function Login() {
       </div>
 
       <style>{`
-        @keyframes toastSlideIn {
-          from { opacity: 0; transform: translateX(18px); }
-          to   { opacity: 1; transform: translateX(0); }
-        }
         @keyframes shake {
           0%,100% { transform: translateX(0); }
           15%      { transform: translateX(-9px); }
