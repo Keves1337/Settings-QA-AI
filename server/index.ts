@@ -30,6 +30,7 @@ import { syncJira } from "./routes/syncJira";
 import { syncGithub } from "./routes/syncGithub";
 import { captureScreenshot } from "./routes/captureScreenshot";
 import { getProjectStats, getPhaseStats } from "./routes/getStats";
+import { loginHandler } from "./routes/auth";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -53,6 +54,17 @@ app.use("/api", limiter);
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" });
 });
+
+// Strict rate limiter for login — 10 attempts per 15 min per IP
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
+  message: { ok: false, error: "Too many login attempts. Try again later." },
+});
+app.post("/api/auth/login", loginLimiter, loginHandler);
 
 app.post("/api/translate-to-hebrew", translateToHebrew);
 app.post("/api/generate-test-cases", generateTestCases);

@@ -102,7 +102,7 @@ function FeatureCard({ feature, visible, compact = false }: {
             {feature.title}
           </div>
           <div style={{ fontSize: compact ? 12 : 14, color: "rgba(255,255,255,0.52)", lineHeight: 1.6 }}>
-            {compact ? feature.desc.slice(0, 80) + "…" : feature.desc}
+            {feature.desc}
           </div>
         </div>
       </div>
@@ -142,6 +142,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [shaking, setShaking] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [featureIdx, setFeatureIdx] = useState(0);
   const [visible, setVisible] = useState(true);
   const [lockoutRemaining, setLockoutRemaining] = useState(0);
@@ -168,15 +169,18 @@ export default function Login() {
     return () => clearInterval(t);
   }, [lockoutUntil]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (lockoutUntil && Date.now() < lockoutUntil) return;
-    const ok = login(username, password);
+    setLoading(true);
+    const ok = await login(username, password);
+    setLoading(false);
     if (!ok) {
+      const attemptsAfter = failedAttempts + 1;
       setError(
-        failedAttempts >= 4
-          ? `Too many attempts. Locked for ${lockoutRemaining || 30}s.`
-          : `Invalid credentials. ${4 - failedAttempts} attempt${4 - failedAttempts === 1 ? "" : "s"} remaining.`
+        attemptsAfter >= 5
+          ? "Access permanently locked due to too many failed attempts."
+          : `Invalid credentials. ${5 - attemptsAfter} attempt${5 - attemptsAfter === 1 ? "" : "s"} remaining.`
       );
       setShaking(true);
       setTimeout(() => setShaking(false), 600);
@@ -357,7 +361,7 @@ export default function Login() {
                   color: "#f87171", fontSize: 13,
                 }}>
                   <AlertTriangle size={14} style={{ flexShrink: 0 }} />
-                  Too many failed attempts. Try again in {lockoutRemaining}s.
+                  Access permanently locked. Contact the administrator.
                 </div>
               )}
 
@@ -377,20 +381,21 @@ export default function Login() {
               <Button
                 data-testid="button-login"
                 type="submit"
-                disabled={isLocked}
+                disabled={isLocked || loading}
                 style={{
                   height: 48,
                   background: isLocked
                     ? "rgba(255,255,255,0.08)"
                     : "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
                   border: "none", borderRadius: 12, fontSize: 15, fontWeight: 600, color: "#fff",
-                  cursor: isLocked ? "not-allowed" : "pointer",
+                  cursor: (isLocked || loading) ? "not-allowed" : "pointer",
                   boxShadow: isLocked ? "none" : "0 4px 24px rgba(99,102,241,0.38)",
                   marginTop: 4,
                   transition: "all 0.2s ease",
+                  opacity: loading ? 0.7 : 1,
                 }}
               >
-                {isLocked ? `Locked — ${lockoutRemaining}s` : "Unlock Platform"}
+                {isLocked ? "Access Locked" : loading ? "Verifying…" : "Unlock Platform"}
               </Button>
             </form>
 

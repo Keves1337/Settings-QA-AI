@@ -2,21 +2,39 @@ import { createContext, useContext, useState, ReactNode, useEffect, useRef, useC
 
 const AUTH_KEY = "bqa_auth_v1";
 const SESSION_TS_KEY = "bqa_session_ts";
-const VALID_USERNAME = "Settings";
-const VALID_PASSWORD = "Sqi4hjwq";
+const LOCKOUT_KEY = "bqa_lockout_until";
+const ATTEMPTS_KEY = "bqa_failed_attempts";
 const MAX_ATTEMPTS = 5;
-const LOCKOUT_MS = 30_000;
+const LOCKOUT_MS = 365 * 24 * 60 * 60 * 1000; // 1 year
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
 
 interface AuthContextValue {
   isAuthenticated: boolean;
   failedAttempts: number;
   lockoutUntil: number | null;
-  login: (username: string, password: string) => boolean;
+  login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+
+function readLockout(): number | null {
+  try {
+    const v = localStorage.getItem(LOCKOUT_KEY);
+    if (!v) return null;
+    const n = Number(v);
+    if (isNaN(n) || Date.now() >= n) {
+      localStorage.removeItem(LOCKOUT_KEY);
+      localStorage.removeItem(ATTEMPTS_KEY);
+      return null;
+    }
+    return n;
+  } catch { return null; }
+}
+
+function readAttempts(): number {
+  try { return Number(localStorage.getItem(ATTEMPTS_KEY) || 0); } catch { return 0; }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -28,8 +46,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch { return false; }
   });
 
-  const [failedAttempts, setFailedAttempts] = useState(0);
-  const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
+  const [failedAttempts, setFailedAttempts] = useState<number>(() => readAttempts());
+  const [lockoutUntil, setLockoutUntil] = useState<number | null>(() => readLockout());
   const activityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const resetSessionTimer = useCallback(() => {
@@ -41,7 +59,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, SESSION_TIMEOUT_MS);
   }, []);
 
-  // Track user activity to reset the session timer
   useEffect(() => {
     if (!isAuthenticated) return;
     resetSessionTimer();
@@ -66,36 +83,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {}
   }, [isAuthenticated]);
 
-  // Clear lockout when timer expires
-  useEffect(() => {
-    if (!lockoutUntil) return;
-    const remaining = lockoutUntil - Date.now();
-    if (remaining <= 0) { setLockoutUntil(null); setFailedAttempts(0); return; }
-    const t = setTimeout(() => { setLockoutUntil(null); setFailedAttempts(0); }, remaining);
-    return () => clearTimeout(t);
-  }, [lockoutUntil]);
-
-  const login = (username: string, password: string): boolean => {
+  const login = async (username: string, password: string): Promise<boolean> => {
     if (lockoutUntil && Date.now() < lockoutUntil) return false;
 
-    const trimmedUser = username.trim();
-    if (trimmedUser === VALID_USERNAME && password === VALID_PASSWORD) {
-      setIsAuthenticated(true);
-      setFailedAttempts(0);
-      setLockoutUntil(null);
-      return true;
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: username.trim(), password }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ok) {
+          setIsAuthenticated(true);
+          setFailedAttempts(0);
+          setLockoutUntil(null);
+          try {
+            localStorage.removeItem(LOCKOUT_KEY);
+            localStorage.removeItem(ATTEMPTS_KEY);
+          } catch {}
+          return true;
+        }
+      }
+    } catch {
+      // Network error — still count as failed attempt
     }
 
     const next = failedAttempts + 1;
     setFailedAttempts(next);
+    try { localStorage.setItem(ATTEMPTS_KEY, String(next)); } catch {}
+
     if (next >= MAX_ATTEMPTS) {
-      setLockoutUntil(Date.now() + LOCKOUT_MS);
+      const until = Date.now() + LOCKOUT_MS;
+      setLockoutUntil(until);
+      try { localStorage.setItem(LOCKOUT_KEY, String(until)); } catch {}
     }
+
     return false;
   };
 
   const logout = () => {
-    try { localStorage.removeItem(AUTH_KEY); localStorage.removeItem(SESSION_TS_KEY); } catch {}
+    try {
+      localStorage.removeItem(AUTH_KEY);
+      localStorage.removeItem(SESSION_TS_KEY);
+    } catch {}
     setIsAuthenticated(false);
   };
 
