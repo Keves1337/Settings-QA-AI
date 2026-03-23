@@ -46,11 +46,11 @@ const navItems = [
 export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const { logout } = useAuth();
   const { toast } = useToast();
 
-  const handleSignOut = async () => {
-    await signOut();
+  const handleSignOut = () => {
+    logout();
     toast({ title: "Signed out successfully" });
   };
 
