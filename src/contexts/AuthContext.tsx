@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, ReactNode, useEffect, useRef, useCallback } from "react";
 
-const AUTH_KEY = "bqa_auth_v1";
-const SESSION_TS_KEY = "bqa_session_ts";
+const AUTH_KEY = "bqa_auth_v2";
+const SESSION_TS_KEY = "bqa_session_ts_v2";
 const LOCKOUT_KEY = "bqa_lockout_until";
 const ATTEMPTS_KEY = "bqa_failed_attempts";
 const MAX_ATTEMPTS = 5;
