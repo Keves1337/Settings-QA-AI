@@ -17,10 +17,7 @@ import {
   FlaskConical,
   Cpu,
   ShieldCheck,
-  LogOut,
 } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
 
 const navItems = [
   {
@@ -46,13 +43,6 @@ const navItems = [
 export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout } = useAuth();
-  const { toast } = useToast();
-
-  const handleSignOut = () => {
-    logout();
-    toast({ title: "Signed out successfully" });
-  };
 
   return (
     <Sidebar className="border-r-0" style={{
@@ -107,17 +97,6 @@ export function AppSidebar() {
 
       <SidebarFooter className="p-3">
         <SidebarSeparator className="mb-3" />
-        <div className="flex items-center justify-end px-1">
-          <SidebarMenuButton
-            onClick={handleSignOut}
-            className="w-auto gap-2 text-muted-foreground hover:text-destructive"
-            tooltip="Sign out"
-            data-testid="button-sign-out"
-          >
-            <LogOut className="h-4 w-4" />
-            <span className="text-xs">Sign out</span>
-          </SidebarMenuButton>
-        </div>
       </SidebarFooter>
     </Sidebar>
   );

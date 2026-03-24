@@ -3,14 +3,12 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import Index from "./pages/Index";
 import QATesting from "./pages/QATesting";
 import AutomatedQA from "./pages/AutomatedQA";
 import NotFound from "./pages/NotFound";
-import Login from "./pages/Login";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -78,12 +76,6 @@ function AmbientBackground() {
 }
 
 function AppLayout() {
-  const { isAuthenticated } = useAuth();
-
-  if (!isAuthenticated) {
-    return <Login />;
-  }
-
   return (
     <SidebarProvider>
       <div className="flex h-screen w-full overflow-hidden">
@@ -118,19 +110,17 @@ function AppLayout() {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter
-          basename={import.meta.env.BASE_URL.replace(/\/$/, "") || "/"}
-          future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
-        >
-          <AmbientBackground />
-          <AppLayout />
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter
+        basename={import.meta.env.BASE_URL.replace(/\/$/, "") || "/"}
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
+        <AmbientBackground />
+        <AppLayout />
+      </BrowserRouter>
+    </TooltipProvider>
   </QueryClientProvider>
 );
 
