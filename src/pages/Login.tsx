@@ -419,8 +419,8 @@ export default function Login() {
             </div>
           </div>
 
-          <div style={{ textAlign: "center", marginTop: 16, fontSize: 11, color: "rgba(255,255,255,0.18)" }}>
-            Designed, built & tested by Johnatan Milrad
+          <div style={{ textAlign: "center", marginTop: 16, fontSize: 11, color: "rgba(255,255,255,0.7)", textShadow: "0 0 8px rgba(139,92,246,0.9), 0 0 20px rgba(139,92,246,0.5)" }}>
+            Designed, built &amp; tested by Johnatan Milrad
           </div>
         </div>
       </div>
