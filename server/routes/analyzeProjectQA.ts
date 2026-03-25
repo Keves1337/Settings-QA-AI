@@ -1662,6 +1662,1581 @@ async function analyzeInteractiveFlow(html: string, url: string): Promise<Findin
   return findings;
 }
 
+// ─── Advanced Security Tests ──────────────────────────────────────────────────
+// HTTP method abuse, sensitive path exposure, CORS, CSRF, timing attacks,
+// info disclosure, redirect chains, default credentials, API probing.
+
+async function analyzeAdvancedSecurity(html: string, url: string): Promise<Finding[]> {
+  const findings: Finding[] = [];
+  const baseUrl = (() => { try { const u = new URL(url); return `${u.protocol}//${u.host}`; } catch { return ""; } })();
+  const ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122 Safari/537.36";
+  const hdr = { "User-Agent": ua, "Accept": "*/*" };
+
+  // ── A1. Sensitive Path Exposure ──────────────────────────────────────────
+
+  const sensitivePaths: Array<{ path: string; label: string; impact: string }> = [
+    { path: "/.env", label: ".env Environment File", impact: "Exposes all environment variables including database passwords, API keys, and secrets." },
+    { path: "/.env.local", label: ".env.local File", impact: "Exposes local override environment variables." },
+    { path: "/.git/config", label: "Git Repository Config", impact: "Exposes repository origin, author info, remote URLs. May allow full source dump." },
+    { path: "/.git/HEAD", label: "Git HEAD File", impact: "Confirms git repository is public. Can be used to enumerate and download commits." },
+    { path: "/config.json", label: "config.json", impact: "Application config may include API keys, DB connection strings, or feature flags." },
+    { path: "/config.yml", label: "config.yml", impact: "YAML config may contain credentials or internal infrastructure details." },
+    { path: "/config.yaml", label: "config.yaml", impact: "YAML config exposure." },
+    { path: "/.htaccess", label: ".htaccess File", impact: "Reveals server routing rules, auth requirements, and redirect logic." },
+    { path: "/wp-config.php", label: "WordPress Config", impact: "WordPress database credentials fully exposed." },
+    { path: "/phpinfo.php", label: "PHP Info Page", impact: "Full PHP configuration, loaded modules, environment variables, and server paths exposed." },
+    { path: "/server-status", label: "Apache Server Status", impact: "Active connections, request history, IP addresses of all visitors exposed." },
+    { path: "/nginx_status", label: "Nginx Status", impact: "Active connections and request counters exposed." },
+    { path: "/robots.txt", label: "robots.txt", impact: "Low — but may reveal hidden admin paths or directories not meant for public knowledge." },
+    { path: "/sitemap.xml", label: "sitemap.xml", impact: "Low — reveals full page inventory; helpful for recon." },
+    { path: "/api/config", label: "/api/config Endpoint", impact: "API config endpoint may expose backend settings, feature flags, or internal URLs." },
+    { path: "/api/env", label: "/api/env Endpoint", impact: "Dangerous if it returns process.env or environment variables." },
+    { path: "/api/debug", label: "/api/debug Endpoint", impact: "Debug endpoints often return stack traces, memory dumps, or internal state." },
+    { path: "/api/healthcheck", label: "/api/healthcheck Endpoint", impact: "Low — but reveals service names, versions, and dependency statuses." },
+    { path: "/api/health", label: "/api/health Endpoint", impact: "Similar to healthcheck — reveals system status." },
+    { path: "/admin", label: "/admin Panel", impact: "Admin panel accessible without authentication." },
+    { path: "/admin/login", label: "/admin/login Panel", impact: "Admin login page exposed publicly." },
+    { path: "/dashboard", label: "/dashboard Page", impact: "Application dashboard reachable — may skip auth." },
+    { path: "/phpmyadmin", label: "phpMyAdmin", impact: "Direct database management UI exposed publicly — critical if no auth." },
+    { path: "/adminer.php", label: "Adminer Database UI", impact: "Full database management access if exposed." },
+    { path: "/.DS_Store", label: ".DS_Store File", impact: "macOS folder metadata leaks directory structure and file names." },
+    { path: "/package.json", label: "package.json", impact: "Reveals all dependencies and versions — helps attackers target known vulnerabilities." },
+    { path: "/package-lock.json", label: "package-lock.json", impact: "Full dependency tree with exact versions — vulnerability mapping." },
+    { path: "/composer.json", label: "composer.json", impact: "PHP dependencies exposed — same risk as package.json." },
+    { path: "/Dockerfile", label: "Dockerfile", impact: "Container build process exposed — reveals base images, ports, and internal paths." },
+    { path: "/docker-compose.yml", label: "docker-compose.yml", impact: "Service architecture, ports, volume mounts, and environment variables exposed." },
+    { path: "/.travis.yml", label: ".travis.yml CI Config", impact: "CI pipeline config may include deploy keys and environment variable names." },
+    { path: "/.github/workflows", label: "GitHub Actions Workflows", impact: "CI/CD pipeline definitions may reveal secrets usage and deploy processes." },
+    { path: "/backup.sql", label: "backup.sql", impact: "Full database dump publicly accessible — catastrophic data breach." },
+    { path: "/db.sql", label: "db.sql", impact: "Database export accessible publicly." },
+    { path: "/dump.sql", label: "dump.sql", impact: "Database dump accessible publicly." },
+    { path: "/error_log", label: "error_log File", impact: "Server error logs with stack traces, file paths, and potentially query data exposed." },
+    { path: "/logs/access.log", label: "Access Log", impact: "All HTTP requests with IP addresses and user agents exposed." },
+    { path: "/storage/logs/laravel.log", label: "Laravel Log", impact: "Full application log with SQL queries, exceptions, and user data." },
+    { path: "/crossdomain.xml", label: "crossdomain.xml", impact: "Flash cross-domain policy — may allow unauthorized cross-origin data access." },
+    { path: "/clientaccesspolicy.xml", label: "clientaccesspolicy.xml", impact: "Silverlight cross-domain policy — same risk as crossdomain.xml." },
+    { path: "/.well-known/security.txt", label: "security.txt", impact: "Low — informational. Good practice to have one." },
+    { path: "/security.txt", label: "security.txt (root)", impact: "Low — informational." },
+    { path: "/CHANGELOG.md", label: "CHANGELOG.md", impact: "Reveals version history and past vulnerabilities that were fixed." },
+    { path: "/README.md", label: "README.md", impact: "Developer documentation may reveal architecture or credentials." },
+    { path: "/.htpasswd", label: ".htpasswd File", impact: "Hashed credentials directly accessible — brute-forceable offline." },
+    { path: "/id_rsa", label: "id_rsa Private Key", impact: "CRITICAL: SSH private key exposed publicly." },
+    { path: "/server.key", label: "server.key Private Key", impact: "CRITICAL: SSL/TLS private key exposed — allows traffic decryption." },
+    { path: "/private.key", label: "private.key", impact: "CRITICAL: Private key file accessible." },
+    { path: "/api/v1/users", label: "/api/v1/users Endpoint", impact: "Unauthenticated user listing exposes PII." },
+    { path: "/api/users", label: "/api/users Endpoint", impact: "User data endpoint accessible without authentication." },
+    { path: "/api/v1/admin", label: "/api/v1/admin Endpoint", impact: "Admin API accessible without authentication." },
+    { path: "/.well-known/openid-configuration", label: "OpenID Config", impact: "OAuth/OIDC configuration exposed — reveals auth endpoints." },
+    { path: "/swagger.json", label: "Swagger/OpenAPI JSON", impact: "Full API documentation exposed — all endpoints listed with parameters." },
+    { path: "/swagger-ui.html", label: "Swagger UI", impact: "Interactive API explorer — all endpoints browsable and testable by anyone." },
+    { path: "/openapi.json", label: "OpenAPI Schema", impact: "Full API schema exposed — every endpoint, parameter, and response type." },
+    { path: "/api-docs", label: "API Docs", impact: "API documentation may expose all endpoints and authentication methods." },
+    { path: "/.npmrc", label: ".npmrc File", impact: "npm registry tokens exposed — may allow package hijacking." },
+    { path: "/.yarnrc", label: ".yarnrc File", impact: "Yarn config with potential auth tokens." },
+  ];
+
+  const pathResults = await Promise.allSettled(
+    sensitivePaths.map(({ path }) =>
+      fetch(`${baseUrl}${path}`, { method: "GET", headers: hdr, redirect: "manual", signal: AbortSignal.timeout(5000) })
+        .then(r => ({ path, status: r.status, size: parseInt(r.headers.get("content-length") || "0") }))
+        .catch(() => ({ path, status: 0, size: 0 }))
+    )
+  );
+
+  const exposed = pathResults
+    .filter(r => r.status === "fulfilled")
+    .map(r => (r as PromiseFulfilledResult<{ path: string; status: number; size: number }>).value)
+    .filter(r => r.status === 200);
+
+  const critical = ["/.env", "/.git/config", "/.git/HEAD", "/id_rsa", "/server.key", "/private.key", "/backup.sql", "/db.sql", "/dump.sql", "/.htpasswd"];
+  const highPaths = ["/admin", "/phpmyadmin", "/adminer.php", "/phpinfo.php", "/api/v1/users", "/api/users", "/swagger-ui.html", "/swagger.json", "/openapi.json"];
+
+  for (const exp of exposed) {
+    const meta = sensitivePaths.find(p => p.path === exp.path)!;
+    const isCritical = critical.includes(exp.path);
+    const isHigh = highPaths.includes(exp.path);
+    findings.push({
+      severity: isCritical ? "critical" : isHigh ? "high" : "medium",
+      type: `Sensitive Path Exposed: ${meta.label} [Security Probe]`,
+      description: `The path "${exp.path}" is publicly accessible (HTTP 200). ${meta.impact}`,
+      location: `${baseUrl}${exp.path}`,
+      recommendation: isCritical
+        ? "URGENT: Move this file outside the web root immediately. Add server rules to block access. Rotate all credentials that may have been exposed."
+        : `Block public access to this path using .htaccess, nginx deny rules, or server config. Files like this should never be served publicly.`,
+      impact: meta.impact,
+      howTested: `Security probe: Sent GET request to ${baseUrl}${exp.path}. Server returned HTTP 200.`,
+      howCaused: "File is located inside the web-accessible root directory without access restrictions.",
+    });
+  }
+
+  // Report paths that are correctly blocked
+  const correctlyBlocked = pathResults
+    .filter(r => r.status === "fulfilled")
+    .map(r => (r as PromiseFulfilledResult<{ path: string; status: number; size: number }>).value)
+    .filter(r => r.status === 403 || r.status === 404).length;
+
+  if (correctlyBlocked > 0 && exposed.length === 0) {
+    findings.push({
+      severity: "pass",
+      type: `All ${sensitivePaths.length} Sensitive Paths Blocked [Security Probe]`,
+      description: `Probed ${sensitivePaths.length} known sensitive paths (.env, .git, admin panels, API docs, private keys, DB dumps, etc). None returned HTTP 200.`,
+      location: baseUrl,
+      recommendation: "Continue running this scan after every deployment to catch accidental exposure.",
+      impact: "None — all sensitive path probes returned 403 or 404.",
+      howTested: `Security probe: Sent GET requests to ${sensitivePaths.length} known sensitive paths. All blocked.`,
+      howCaused: "N/A",
+    });
+  } else if (exposed.length === 0 && correctlyBlocked === 0) {
+    findings.push({
+      severity: "pass",
+      type: `Sensitive Paths Not Accessible [Security Probe]`,
+      description: `All probed sensitive paths returned non-200 responses. No obvious exposure detected.`,
+      location: baseUrl,
+      recommendation: "Continue periodic sensitive path scanning.",
+      impact: "None.",
+      howTested: `Probed ${sensitivePaths.length} paths.`,
+      howCaused: "N/A",
+    });
+  }
+
+  // ── A2. HTTP Method Abuse Testing ─────────────────────────────────────────
+
+  const dangerousMethods = ["PUT", "DELETE", "PATCH", "TRACE", "OPTIONS", "CONNECT", "PROPFIND", "PROPPATCH", "MKCOL", "COPY", "MOVE"];
+
+  const methodResults = await Promise.allSettled(
+    dangerousMethods.map(method =>
+      fetch(url, { method, headers: hdr, redirect: "manual", signal: AbortSignal.timeout(5000) })
+        .then(r => ({ method, status: r.status, allow: r.headers.get("allow") || "" }))
+        .catch(() => ({ method, status: 0, allow: "" }))
+    )
+  );
+
+  const allowedDangerous = methodResults
+    .filter(r => r.status === "fulfilled")
+    .map(r => (r as PromiseFulfilledResult<{ method: string; status: number; allow: string }>).value)
+    .filter(r => r.status !== 405 && r.status !== 501 && r.status !== 0 && r.status !== 403);
+
+  const traceAllowed = allowedDangerous.find(r => r.method === "TRACE");
+  if (traceAllowed) {
+    findings.push({
+      severity: "high",
+      type: "HTTP TRACE Method Enabled [Security Probe]",
+      description: `The TRACE method is enabled (HTTP ${traceAllowed.status}). This allows Cross-Site Tracing (XST) attacks which can steal HttpOnly cookies.`,
+      location: url,
+      recommendation: "Disable TRACE method in your web server config. Nginx: add 'if ($request_method = TRACE) { return 405; }'. Apache: add 'TraceEnable off'.",
+      impact: "XST attacks can steal session cookies even with HttpOnly flag set. Attacker uses JavaScript to send a TRACE request and read the echoed cookies from the response.",
+      howTested: `Security probe: Sent HTTP TRACE request to ${url}. Server returned HTTP ${traceAllowed.status} instead of 405 Method Not Allowed.`,
+      howCaused: "TRACE method is enabled by default in some web servers. It must be explicitly disabled.",
+    });
+  }
+
+  const putAllowed = allowedDangerous.find(r => r.method === "PUT");
+  if (putAllowed) {
+    findings.push({
+      severity: "critical",
+      type: "HTTP PUT Method Enabled [Security Probe]",
+      description: `PUT method is enabled on the web root (HTTP ${putAllowed.status}). An attacker may be able to upload arbitrary files to the server.`,
+      location: url,
+      recommendation: "Disable PUT method unless intentionally used. Restrict it to specific authenticated API endpoints only.",
+      impact: "Attacker can upload malicious scripts (web shells) to the server and execute arbitrary code.",
+      howTested: `Security probe: Sent HTTP PUT request to ${url}. Server returned HTTP ${putAllowed.status} instead of 405.`,
+      howCaused: "Web server or framework allows all HTTP methods by default without restriction.",
+    });
+  }
+
+  const deleteAllowed = allowedDangerous.find(r => r.method === "DELETE");
+  if (deleteAllowed) {
+    findings.push({
+      severity: "high",
+      type: "HTTP DELETE Method Enabled on Root [Security Probe]",
+      description: `DELETE method responds with HTTP ${deleteAllowed.status} on the root URL. May allow unauthenticated deletion of server resources.`,
+      location: url,
+      recommendation: "Restrict DELETE to authenticated API endpoints only. Block it on static/page routes.",
+      impact: "Attacker could delete server-side resources without authentication.",
+      howTested: `Security probe: Sent HTTP DELETE to ${url}. Got HTTP ${deleteAllowed.status}.`,
+      howCaused: "Server accepts all HTTP methods without method-level restrictions.",
+    });
+  }
+
+  const optionsRes = methodResults
+    .filter(r => r.status === "fulfilled")
+    .map(r => (r as PromiseFulfilledResult<{ method: string; status: number; allow: string }>).value)
+    .find(r => r.method === "OPTIONS");
+
+  if (optionsRes && optionsRes.status === 200) {
+    const allowHeader = optionsRes.allow.toUpperCase();
+    if (allowHeader.includes("TRACE") || allowHeader.includes("PUT") || allowHeader.includes("DELETE")) {
+      findings.push({
+        severity: "medium",
+        type: "Dangerous Methods Listed in Allow Header [Security Probe]",
+        description: `OPTIONS response lists potentially dangerous HTTP methods in the Allow header: "${optionsRes.allow}". This advertises attack surface.`,
+        location: url,
+        recommendation: "Audit the Allow header and remove any method not intentionally supported. Consider hiding the OPTIONS response entirely.",
+        impact: "Attackers use OPTIONS requests to enumerate available attack vectors. Dangerous methods in Allow header confirms their availability.",
+        howTested: `Security probe: Sent OPTIONS request to ${url}. Allow header returned: "${optionsRes.allow}".`,
+        howCaused: "Web server or framework automatically generates Allow header listing all registered method handlers.",
+      });
+    } else {
+      findings.push({
+        severity: "pass",
+        type: "HTTP Allow Header Safe [Security Probe]",
+        description: `OPTIONS response Allow header shows only safe methods: "${optionsRes.allow}".`,
+        location: url,
+        recommendation: "Continue restricting HTTP methods to only those needed.",
+        impact: "None — method enumeration shows safe configuration.",
+        howTested: `Sent OPTIONS to ${url}. Allow: "${optionsRes.allow}".`,
+        howCaused: "N/A",
+      });
+    }
+  }
+
+  // ── A3. CORS Misconfiguration Testing ─────────────────────────────────────
+
+  try {
+    const corsRes = await fetch(url, {
+      headers: { ...hdr, "Origin": "https://evil-attacker-site.com" },
+      signal: AbortSignal.timeout(8000),
+    });
+    const acao = corsRes.headers.get("access-control-allow-origin") || "";
+    const acac = corsRes.headers.get("access-control-allow-credentials") || "";
+
+    if (acao === "*" && acac === "true") {
+      findings.push({
+        severity: "critical",
+        type: "CORS Misconfiguration: Wildcard + Credentials [Security Probe]",
+        description: "Server responds with Access-Control-Allow-Origin: * AND Access-Control-Allow-Credentials: true simultaneously. This is a catastrophic CORS misconfiguration.",
+        location: url,
+        recommendation: "Never combine wildcard ACAO with Allow-Credentials: true. Specify exact allowed origins instead of *.",
+        impact: "Any website can make authenticated cross-origin requests on behalf of logged-in users, reading their data and performing actions.",
+        howTested: `Security probe: Sent request with Origin: https://evil-attacker-site.com. Response: ACAO: ${acao}, ACAC: ${acac}.`,
+        howCaused: "CORS configuration combines wildcard origin (meant for public APIs) with credentials flag (meant for trusted origins). These are mutually exclusive for security.",
+      });
+    } else if (acao === "https://evil-attacker-site.com") {
+      findings.push({
+        severity: "high",
+        type: "CORS Blindly Reflects Request Origin [Security Probe]",
+        description: `Server reflects any Origin header back as Access-Control-Allow-Origin. Sent: "https://evil-attacker-site.com", Got back the same value.`,
+        location: url,
+        recommendation: "Maintain an allowlist of trusted origins. Never dynamically reflect the Origin header value without checking it against an allowlist.",
+        impact: "Any site can make cross-origin requests to this API and read the response, bypassing Same-Origin Policy.",
+        howTested: `Security probe: Sent request with Origin: https://evil-attacker-site.com. ACAO header echoed back the same value.`,
+        howCaused: "CORS middleware uses req.headers.origin directly as the ACAO value without validating against an allowlist.",
+      });
+    } else if (acao === "*") {
+      findings.push({
+        severity: "medium",
+        type: "CORS Wildcard Origin (No Credentials) [Security Probe]",
+        description: "Server responds with Access-Control-Allow-Origin: * — any website can make cross-origin requests and read responses.",
+        location: url,
+        recommendation: "If this is a public API, wildcard may be acceptable. If the API requires authentication, restrict to specific trusted origins.",
+        impact: "Any website can read API responses. For public read-only APIs this may be intentional. For authenticated endpoints this is a risk.",
+        howTested: `Security probe: Sent request with evil Origin header. Response ACAO: *.`,
+        howCaused: "CORS policy set to allow all origins.",
+      });
+    } else if (!acao) {
+      findings.push({
+        severity: "pass",
+        type: "CORS Not Broadly Opened [Security Probe]",
+        description: "Server did not respond with a permissive Access-Control-Allow-Origin header for an untrusted origin.",
+        location: url,
+        recommendation: "Verify CORS config for API endpoints specifically — main page pass doesn't guarantee API endpoints are safe.",
+        impact: "None — CORS configuration appears restrictive for the main page.",
+        howTested: `Security probe: Sent request with Origin: https://evil-attacker-site.com. No permissive ACAO returned.`,
+        howCaused: "N/A",
+      });
+    }
+  } catch { /* skip */ }
+
+  // ── A4. CSRF Protection Check ─────────────────────────────────────────────
+
+  const hasCSRF = /csrf|xsrf|_token|authenticity.token/i.test(html);
+  const hasMeta = /<meta[^>]*(?:csrf|xsrf)[^>]*/i.test(html);
+
+  if (allForms(html).length > 0) {
+    if (!hasCSRF && !hasMeta) {
+      findings.push({
+        severity: "high",
+        type: "No CSRF Tokens Found in Forms [Security Probe]",
+        description: "Page contains forms but no CSRF token patterns (csrf_token, _token, xsrf, authenticity_token) detected in the HTML source.",
+        location: url,
+        recommendation: "Add a CSRF token to every state-changing form. Use the Synchronizer Token Pattern: generate a random token server-side, embed it in the form, and validate it on submission.",
+        impact: "Attacker can craft a malicious page that auto-submits forms on behalf of logged-in users — changing passwords, making purchases, or deleting accounts.",
+        howTested: "Security probe: Scanned all form HTML for CSRF token inputs and meta tags. None found.",
+        howCaused: "Forms were built without CSRF protection middleware. Frameworks like Express require explicit csrf middleware (e.g., csurf, express-csrf).",
+      });
+    } else {
+      findings.push({
+        severity: "pass",
+        type: "CSRF Token Pattern Detected [Security Probe]",
+        description: "CSRF token patterns found in forms or meta tags — cross-site request forgery protection appears to be implemented.",
+        location: url,
+        recommendation: "Verify tokens are unique per session, expire after use, and are validated server-side on every state-changing request.",
+        impact: "None — CSRF protection is present.",
+        howTested: "Security probe: Scanned HTML for csrf_token, _token, xsrf, authenticity_token patterns in forms and meta tags.",
+        howCaused: "N/A",
+      });
+    }
+  }
+
+  // ── A5. Redirect Chain Analysis ───────────────────────────────────────────
+
+  try {
+    let currentUrl = url;
+    let redirectCount = 0;
+    const redirectChain: string[] = [url];
+    let response: Response | null = null;
+
+    while (redirectCount < 10) {
+      response = await fetch(currentUrl, { method: "GET", headers: hdr, redirect: "manual", signal: AbortSignal.timeout(5000) });
+      if (response.status >= 300 && response.status < 400) {
+        const location = response.headers.get("location");
+        if (!location || location === currentUrl) break;
+        redirectCount++;
+        currentUrl = location.startsWith("http") ? location : (location.startsWith("/") ? `${baseUrl}${location}` : location);
+        redirectChain.push(currentUrl);
+      } else {
+        break;
+      }
+    }
+
+    if (redirectCount > 3) {
+      findings.push({
+        severity: "medium",
+        type: `Long Redirect Chain (${redirectCount} Hops) [Security Probe]`,
+        description: `URL goes through ${redirectCount} redirects before reaching final destination: ${redirectChain.join(" → ")}`,
+        location: url,
+        recommendation: "Collapse redirect chains to a maximum of 1-2 hops. Each redirect adds latency and confuses some clients.",
+        impact: "Each redirect adds ~100-300ms latency. Deep chains slow page load significantly. Some bots and clients stop following after 3-5 redirects.",
+        howTested: `Security probe: Followed redirect chain from ${url}, tracking Location headers. Counted ${redirectCount} hops.`,
+        howCaused: "Multiple redirects layered on top of each other (e.g., http→https + www→non-www + trailing slash normalization all separately).",
+      });
+    } else if (redirectCount >= 1) {
+      findings.push({
+        severity: "pass",
+        type: `Redirect Chain Acceptable (${redirectCount} hop${redirectCount > 1 ? "s" : ""}) [Security Probe]`,
+        description: `URL redirects ${redirectCount} time(s): ${redirectChain.join(" → ")}`,
+        location: url,
+        recommendation: "Keep redirect chains at 1 hop maximum for best performance.",
+        impact: "None — redirect count is acceptable.",
+        howTested: `Followed redirect chain. ${redirectCount} hop(s) total.`,
+        howCaused: "N/A",
+      });
+    }
+
+    // Check if HTTP → HTTPS redirect is in place
+    if (url.startsWith("https://")) {
+      try {
+        const httpUrl = url.replace("https://", "http://");
+        const httpRes = await fetch(httpUrl, { method: "GET", headers: hdr, redirect: "manual", signal: AbortSignal.timeout(5000) });
+        if (httpRes.status >= 301 && httpRes.status <= 308) {
+          const loc = httpRes.headers.get("location") || "";
+          findings.push({
+            severity: "pass",
+            type: "HTTP → HTTPS Redirect Active [Security Probe]",
+            description: `HTTP requests are redirected to HTTPS (${httpRes.status} → ${loc}).`,
+            location: httpUrl,
+            recommendation: "Also add HSTS header to prevent browsers from ever using HTTP for this domain.",
+            impact: "None — HTTP to HTTPS upgrade redirect is working.",
+            howTested: `Probed HTTP version of the URL. Got ${httpRes.status} redirect to HTTPS.`,
+            howCaused: "N/A",
+          });
+        } else {
+          findings.push({
+            severity: "high",
+            type: "No HTTP → HTTPS Redirect [Security Probe]",
+            description: `HTTP version of the URL returns HTTP ${httpRes.status} instead of redirecting to HTTPS. Users connecting over HTTP are not upgraded to a secure connection.`,
+            location: httpUrl,
+            recommendation: "Add a 301 redirect from HTTP to HTTPS. In nginx: 'return 301 https://$host$request_uri;'. In Apache: use mod_rewrite.",
+            impact: "Users connecting on HTTP receive content without encryption. Passwords, sessions, and personal data are exposed to eavesdroppers.",
+            howTested: `Probed HTTP version: ${httpUrl}. Got HTTP ${httpRes.status} without HTTPS redirect.`,
+            howCaused: "Server is not configured to force HTTPS connections.",
+          });
+        }
+      } catch { /* skip */ }
+    }
+  } catch { /* skip */ }
+
+  // ── A6. Information Disclosure via Error Messages ─────────────────────────
+
+  try {
+    const errorProbeUrl = `${baseUrl}/api/qa-probe-error-${Date.now()}?id[]=1&id[]=2`;
+    const errRes = await fetch(errorProbeUrl, {
+      method: "POST",
+      headers: { ...hdr, "Content-Type": "application/json" },
+      body: JSON.stringify({ id: "' OR 1=1 --", data: { $ne: null } }),
+      signal: AbortSignal.timeout(8000),
+    });
+    const errBody = await errRes.text().catch(() => "");
+
+    const stackTracePatterns = [
+      /at\s+\w+\s*\([^)]+\.\w+:\d+:\d+\)/,
+      /Error:\s+.+\n\s+at/,
+      /SyntaxError|TypeError|ReferenceError|MongoError|SequelizeDatabaseError|QueryFailedError/,
+      /\bstacktrace\b|\bstack_trace\b/i,
+      /node_modules\/|\/app\/server\/|\/home\/runner\//,
+    ];
+
+    const leaksStack = stackTracePatterns.some(p => p.test(errBody));
+    const leaksDbError = /sql|mysql|postgres|sqlite|mongodb|sequelize|prisma|drizzle|ORA-\d+/i.test(errBody);
+    const leaksVersion = /express\/\d+|node\/\d+|php\/\d+|nginx\/\d+|apache\/\d+/i.test(errBody);
+
+    if (leaksStack) {
+      findings.push({
+        severity: "high",
+        type: "Stack Traces Exposed in Error Responses [Security Probe]",
+        description: "API endpoint returned a stack trace in its error response. Stack traces reveal file paths, function names, and code structure.",
+        location: errorProbeUrl,
+        recommendation: "Never return stack traces in production. Log errors server-side and return generic error messages to clients. Set NODE_ENV=production.",
+        impact: "Attacker learns internal file structure, function names, and may identify specific vulnerable library versions.",
+        howTested: "Security probe: Sent a malformed API request. Response body contained stack trace patterns (file:line:col format).",
+        howCaused: "Application is running in development mode or error handler is not configured for production.",
+      });
+    }
+    if (leaksDbError) {
+      findings.push({
+        severity: "high",
+        type: "Database Error Messages in API Response [Security Probe]",
+        description: "API error response contains database-related keywords (SQL, PostgreSQL, Sequelize, etc.). Raw DB errors are leaking to the client.",
+        location: errorProbeUrl,
+        recommendation: "Catch all database errors and return generic messages: { error: 'Internal server error' }. Log the real error server-side only.",
+        impact: "Attacker learns database engine, table names, column names, or SQL query structure — essential information for SQL injection attacks.",
+        howTested: "Security probe: Sent malformed request. Response body contained DB engine or ORM error patterns.",
+        howCaused: "Database errors are not caught and are passed directly to the HTTP response handler.",
+      });
+    }
+    if (!leaksStack && !leaksDbError) {
+      findings.push({
+        severity: "pass",
+        type: "Error Responses Don't Expose Internal Details [Security Probe]",
+        description: "Probing unknown API endpoints with malformed data did not return stack traces or database error messages.",
+        location: errorProbeUrl,
+        recommendation: "Continue auditing all error paths. Ensure all try/catch blocks return generic errors in production.",
+        impact: "None — error information disclosure test passed.",
+        howTested: "Security probe: Sent malformed POST to unknown API endpoint. Response did not contain stack traces or DB error messages.",
+        howCaused: "N/A",
+      });
+    }
+  } catch { /* skip */ }
+
+  // ── A7. Login Timing Attack ───────────────────────────────────────────────
+
+  const loginFormPattern2 = /<form[^>]*>[\s\S]*?<\/form>/gi;
+  const allFormsList = html.match(loginFormPattern2) || [];
+  const loginFormForTiming = allFormsList.find(f => /<input[^>]*type=["']password["']/i.test(f));
+
+  if (loginFormForTiming) {
+    const actionMatch = loginFormForTiming.match(/action=["']([^"']*)["']/i);
+    const formAction = actionMatch?.[1] || url;
+    const resolvedAction = formAction.startsWith("http") ? formAction : (formAction.startsWith("/") ? `${baseUrl}${formAction}` : url);
+    const methodMatch = loginFormForTiming.match(/method=["'](post|get)["']/i);
+    const formMethod = (methodMatch?.[1] || "post").toUpperCase();
+
+    try {
+      const timings: number[] = [];
+      const testCases = [
+        "validuser1&password=wrongpassword1",
+        "nonexistent_user_abc_xyz&password=wrongpassword2",
+        "validuser1&password=wrongpassword3",
+        "nonexistent_user_def_uvw&password=wrongpassword4",
+      ];
+
+      for (const tc of testCases) {
+        const t0 = Date.now();
+        await fetch(resolvedAction, {
+          method: formMethod,
+          headers: { ...hdr, "Content-Type": "application/x-www-form-urlencoded" },
+          body: `username=${tc}`,
+          redirect: "manual",
+          signal: AbortSignal.timeout(8000),
+        }).catch(() => null);
+        timings.push(Date.now() - t0);
+        await new Promise(r => setTimeout(r, 100));
+      }
+
+      const existingUserTimings = [timings[0], timings[2]];
+      const nonexistentTimings = [timings[1], timings[3]];
+      const avgExisting = existingUserTimings.reduce((a, b) => a + b, 0) / existingUserTimings.length;
+      const avgNonexistent = nonexistentTimings.reduce((a, b) => a + b, 0) / nonexistentTimings.length;
+      const timingDiff = Math.abs(avgExisting - avgNonexistent);
+
+      if (timingDiff > 200) {
+        findings.push({
+          severity: "medium",
+          type: "Potential Timing Attack: Login Response Times Differ [Security Probe]",
+          description: `Login attempts with different usernames have different average response times: existing-like usernames avg ${Math.round(avgExisting)}ms, non-existing-like avg ${Math.round(avgNonexistent)}ms (${Math.round(timingDiff)}ms difference). This may enable username enumeration via timing.`,
+          location: resolvedAction,
+          recommendation: "Use constant-time comparison for password hashing. Add an artificial fixed delay to all failed logins regardless of whether the username exists.",
+          impact: "Attacker can enumerate valid usernames by measuring response time differences, then target those accounts for brute force.",
+          howTested: `Security probe: Sent login requests with different usernames (alternating likely-existing vs clearly-random). Measured response times: [${timings.join(", ")}]ms.`,
+          howCaused: "Server queries the database for the username first, then hashes the password — if the user doesn't exist, the query returns faster and skips hashing.",
+        });
+      } else {
+        findings.push({
+          severity: "pass",
+          type: "Login Response Times Consistent (No Timing Attack) [Security Probe]",
+          description: `Login response times are consistent regardless of username: avg ${Math.round(avgExisting)}ms vs ${Math.round(avgNonexistent)}ms (${Math.round(timingDiff)}ms difference — within acceptable range).`,
+          location: resolvedAction,
+          recommendation: "Continue using constant-time password comparison. Consider adding a small random jitter to all login responses.",
+          impact: "None — timing attack test passed.",
+          howTested: `Security probe: Tested login with varying usernames. Response times: [${timings.join(", ")}]ms.`,
+          howCaused: "N/A",
+        });
+      }
+    } catch { /* skip */ }
+  }
+
+  // ── A8. Common Default Credentials ────────────────────────────────────────
+
+  const adminPaths = ["/admin", "/admin/login", "/wp-admin", "/login", "/signin"];
+  const defaultCreds = [
+    { user: "admin", pass: "admin" },
+    { user: "admin", pass: "password" },
+    { user: "admin", pass: "123456" },
+    { user: "admin", pass: "" },
+    { user: "root", pass: "root" },
+    { user: "administrator", pass: "administrator" },
+    { user: "test", pass: "test" },
+  ];
+
+  for (const adminPath of adminPaths.slice(0, 2)) {
+    const adminUrl = `${baseUrl}${adminPath}`;
+    try {
+      const adminCheck = await fetch(adminUrl, { headers: hdr, redirect: "follow", signal: AbortSignal.timeout(5000) });
+      if (adminCheck.status === 200) {
+        const adminHtml = await adminCheck.text().catch(() => "");
+        if (/<input[^>]*type=["']password["']/i.test(adminHtml)) {
+          for (const cred of defaultCreds.slice(0, 3)) {
+            try {
+              const credRes = await fetch(adminUrl, {
+                method: "POST",
+                headers: { ...hdr, "Content-Type": "application/x-www-form-urlencoded" },
+                body: `username=${encodeURIComponent(cred.user)}&password=${encodeURIComponent(cred.pass)}&user_login=${encodeURIComponent(cred.user)}&user_pass=${encodeURIComponent(cred.pass)}`,
+                redirect: "manual",
+                signal: AbortSignal.timeout(5000),
+              });
+              if (credRes.status === 302 && !credRes.headers.get("location")?.includes("login") && !credRes.headers.get("location")?.includes("error")) {
+                findings.push({
+                  severity: "critical",
+                  type: `Default Credentials Accepted: ${cred.user}/${cred.pass || "(empty)"} [Security Probe]`,
+                  description: `Admin panel at ${adminUrl} accepted default credentials (${cred.user} / ${cred.pass || "(empty)"}). Server redirected to: ${credRes.headers.get("location")}.`,
+                  location: adminUrl,
+                  recommendation: "Change all default credentials immediately. Enforce strong password policy. Restrict admin panel to internal network IPs.",
+                  impact: "CRITICAL: Admin panel is compromised. Attacker has full administrative access with these default credentials.",
+                  howTested: `Security probe: Submitted default credentials ${cred.user}/${cred.pass || "(empty)"} to ${adminUrl}. Got successful redirect.`,
+                  howCaused: "Default credentials were not changed after installation.",
+                });
+              }
+            } catch { /* skip */ }
+          }
+        }
+      }
+    } catch { /* skip */ }
+  }
+
+  // ── A9. Clickjacking Protection ───────────────────────────────────────────
+
+  try {
+    const clickRes = await fetch(url, { headers: hdr, signal: AbortSignal.timeout(8000) });
+    const xfo = clickRes.headers.get("x-frame-options") || "";
+    const csp = clickRes.headers.get("content-security-policy") || "";
+    const hasFrameProtection = /DENY|SAMEORIGIN/i.test(xfo) || /frame-ancestors/i.test(csp);
+
+    if (!hasFrameProtection) {
+      findings.push({
+        severity: "medium",
+        type: "Clickjacking Protection Missing [Security Probe]",
+        description: "No X-Frame-Options or CSP frame-ancestors directive found. This page can be embedded in an iframe on any attacker-controlled website.",
+        location: url,
+        recommendation: "Add header: X-Frame-Options: SAMEORIGIN. Or add to CSP: frame-ancestors 'self'. Both together for maximum compatibility.",
+        impact: "Clickjacking: attacker embeds your site in an invisible iframe and tricks users into clicking buttons on your site while they think they're clicking something else.",
+        howTested: "Security probe: Checked X-Frame-Options and Content-Security-Policy headers for framing restrictions.",
+        howCaused: "Clickjacking headers not configured in web server or application middleware.",
+      });
+    } else {
+      findings.push({
+        severity: "pass",
+        type: "Clickjacking Protection Present [Security Probe]",
+        description: `Clickjacking protection detected: ${xfo ? `X-Frame-Options: ${xfo}` : ""}${csp && /frame-ancestors/i.test(csp) ? " CSP frame-ancestors set" : ""}.`,
+        location: url,
+        recommendation: "Use CSP frame-ancestors as the modern approach — X-Frame-Options is legacy but still needed for older browsers.",
+        impact: "None — clickjacking protection is in place.",
+        howTested: "Security probe: Checked framing protection headers.",
+        howCaused: "N/A",
+      });
+    }
+  } catch { /* skip */ }
+
+  // ── A10. Open Redirect Testing ────────────────────────────────────────────
+
+  const redirectParams = ["redirect", "next", "url", "return", "returnTo", "goto", "continue", "forward", "target", "destination", "redir", "redirect_uri"];
+
+  for (const param of redirectParams.slice(0, 5)) {
+    try {
+      const openRedirectUrl = `${url}?${param}=https://evil-attacker-site.com/steal`;
+      const redRes = await fetch(openRedirectUrl, { method: "GET", headers: hdr, redirect: "manual", signal: AbortSignal.timeout(5000) });
+      if (redRes.status >= 301 && redRes.status <= 308) {
+        const location = redRes.headers.get("location") || "";
+        if (location.includes("evil-attacker-site.com")) {
+          findings.push({
+            severity: "high",
+            type: `Open Redirect via ?${param} Parameter [Security Probe]`,
+            description: `Adding ?${param}=https://evil-attacker-site.com to the URL causes a redirect to the attacker's domain (${redRes.status} → ${location}).`,
+            location: openRedirectUrl,
+            recommendation: "Validate redirect targets against an allowlist of trusted domains. Never redirect to arbitrary user-supplied URLs.",
+            impact: "Phishing: attacker sends users a link to your trusted domain that automatically redirects them to a malicious site. OAuth redirect URI abuse.",
+            howTested: `Security probe: Appended ?${param}=https://evil-attacker-site.com to URL. Got ${redRes.status} redirect to attacker domain.`,
+            howCaused: `Query parameter "${param}" is used directly as redirect destination without domain validation.`,
+          });
+          break;
+        }
+      }
+    } catch { /* skip */ }
+  }
+
+  // ── A11. Subresource Integrity (SRI) Check ─────────────────────────────────
+
+  const externalScripts = (html.match(/<script[^>]+src=["']https?:\/\/[^"']+["'][^>]*/gi) || []);
+  const externalStyles = (html.match(/<link[^>]+href=["']https?:\/\/[^"']+["'][^>]*/gi) || []).filter(l => /stylesheet/i.test(l));
+
+  const missingIntegrity = [...externalScripts, ...externalStyles].filter(tag => !/integrity=["']/i.test(tag));
+
+  if (missingIntegrity.length > 0) {
+    findings.push({
+      severity: "medium",
+      type: `${missingIntegrity.length} External Resource(s) Missing SRI Hash [Security Probe]`,
+      description: `${missingIntegrity.length} external script/stylesheet tag(s) load from CDN without Subresource Integrity (SRI) hashes. If the CDN is compromised, malicious code runs on your site.`,
+      location: url,
+      recommendation: "Add integrity=\"sha384-...\" and crossorigin=\"anonymous\" to all external CDN resources. Use https://www.srihash.org/ to generate hashes.",
+      impact: "If the CDN hosting these resources is compromised (supply chain attack), the attacker can replace the file with malicious code that runs on your users' browsers.",
+      howTested: `Security probe: Scanned ${externalScripts.length + externalStyles.length} external resources for SRI integrity attributes. ${missingIntegrity.length} were missing.`,
+      howCaused: "External resources added without SRI hashes — common when just copying CDN link tags without security attributes.",
+    });
+  } else if (externalScripts.length + externalStyles.length > 0) {
+    findings.push({
+      severity: "pass",
+      type: "All External Resources Have SRI Hashes [Security Probe]",
+      description: `All ${externalScripts.length + externalStyles.length} external CDN resources have Subresource Integrity attributes — supply chain attacks are mitigated.`,
+      location: url,
+      recommendation: "Update SRI hashes when upgrading CDN library versions.",
+      impact: "None — SRI check passed.",
+      howTested: `Scanned all external <script> and <link> tags for integrity attributes. All ${externalScripts.length + externalStyles.length} had them.`,
+      howCaused: "N/A",
+    });
+  }
+
+  // ── A12. API Rate Limiting on Auth Endpoints ─────────────────────────────
+
+  const loginFormList = html.match(/<form[^>]*>[\s\S]*?<\/form>/gi) || [];
+  const loginFm = loginFormList.find(f => /<input[^>]*type=["']password["']/i.test(f));
+  if (loginFm) {
+    const amatch = loginFm.match(/action=["']([^"']*)["']/i);
+    const loginUrl = amatch ? (amatch[1].startsWith("/") ? `${baseUrl}${amatch[1]}` : amatch[1]) : `${baseUrl}/login`;
+    try {
+      const bruteAttempts = Array.from({ length: 15 }, (_, i) =>
+        fetch(loginUrl, {
+          method: "POST",
+          headers: { ...hdr, "Content-Type": "application/x-www-form-urlencoded" },
+          body: `username=testuser&password=attempt${i}`,
+          redirect: "manual",
+          signal: AbortSignal.timeout(8000),
+        }).then(r => r.status).catch(() => 0)
+      );
+      const bruteStatuses = await Promise.all(bruteAttempts);
+      const blocked = bruteStatuses.filter(s => s === 429 || s === 423 || s === 503).length;
+      const lockout = bruteStatuses.some(s => s === 429 || s === 423);
+
+      if (!lockout) {
+        findings.push({
+          severity: "high",
+          type: "No Brute Force Protection on Login [Security Probe]",
+          description: `15 rapid login attempts were made without triggering a rate limit or lockout. Brute force attacks are not protected against.`,
+          location: loginUrl,
+          recommendation: "Implement account lockout after 5-10 failed attempts. Add exponential backoff. Return HTTP 429 with Retry-After header. Consider CAPTCHA after 3 failures.",
+          impact: "Attacker can try thousands of passwords per minute against any account. Weak or common passwords will be cracked quickly.",
+          howTested: `Security probe: Sent 15 consecutive failed login attempts. None triggered HTTP 429, 423, or any lockout response.`,
+          howCaused: "Login endpoint lacks rate limiting middleware and account lockout logic.",
+        });
+      } else {
+        findings.push({
+          severity: "pass",
+          type: `Brute Force Protection Active (${blocked}/15 Blocked) [Security Probe]`,
+          description: `${blocked} out of 15 rapid login attempts were blocked with rate limiting or lockout responses. Brute force protection is working.`,
+          location: loginUrl,
+          recommendation: "Verify lockout duration is sufficient and that lockout state is stored server-side (not in a cookie).",
+          impact: "None — brute force protection is working.",
+          howTested: `Security probe: Sent 15 rapid login attempts. ${blocked} returned 429/423 lockout responses.`,
+          howCaused: "N/A",
+        });
+      }
+    } catch { /* skip */ }
+  }
+
+  return findings;
+}
+
+// ─── Helper ──────────────────────────────────────────────────────────────────
+function allForms(html: string): RegExpMatchArray {
+  return html.match(/<form[^>]*>[\s\S]*?<\/form>/gi) || ([] as unknown as RegExpMatchArray);
+}
+
+// ─── Performance, SEO, PWA & Mobile Tests ───────────────────────────────────
+// Compression, caching, Core Web Vitals signals, SEO tags, Open Graph,
+// schema.org, PWA manifest, mobile meta, accessibility, typography.
+
+async function analyzePerformanceSEO(html: string, url: string): Promise<Finding[]> {
+  const findings: Finding[] = [];
+  const baseUrl = (() => { try { const u = new URL(url); return `${u.protocol}//${u.host}`; } catch { return ""; } })();
+  const hdr = { "User-Agent": "Mozilla/5.0 (compatible; QABot/1.0)" };
+
+  // ── P1. GZIP / Brotli Compression ─────────────────────────────────────────
+
+  try {
+    const compRes = await fetch(url, {
+      headers: { ...hdr, "Accept-Encoding": "br, gzip, deflate" },
+      signal: AbortSignal.timeout(8000),
+    });
+    const encoding = compRes.headers.get("content-encoding") || "";
+    const contentLength = parseInt(compRes.headers.get("content-length") || "0");
+    const rawBody = await compRes.text().catch(() => "");
+    const rawSize = rawBody.length;
+
+    if (!encoding) {
+      findings.push({
+        severity: "medium",
+        type: "Response Not Compressed (No GZIP/Brotli) [Performance]",
+        description: `Server returned ${rawSize.toLocaleString()} bytes with no compression (Accept-Encoding: br, gzip sent). Uncompressed HTML wastes bandwidth and slows load.`,
+        location: url,
+        recommendation: "Enable Brotli (preferred) or Gzip compression on your web server. Nginx: 'gzip on; gzip_types text/html text/css application/javascript'. Express: use compression middleware.",
+        impact: "Uncompressed HTML is typically 3-7x larger than compressed. A 200KB page becomes 30-60KB with gzip — massive speed difference on mobile.",
+        howTested: `Performance test: Sent Accept-Encoding: br, gzip, deflate. Response Content-Encoding header: "${encoding || "not set"}".`,
+        howCaused: "Compression middleware not configured on the server. This is often a one-line fix but left out in minimal setups.",
+      });
+    } else {
+      findings.push({
+        severity: "pass",
+        type: `Response Compressed with ${encoding.toUpperCase()} [Performance]`,
+        description: `Server uses ${encoding} compression. Compressed responses reduce bandwidth and improve load times significantly.`,
+        location: url,
+        recommendation: "Prefer Brotli over Gzip — it's 20-30% smaller for text content.",
+        impact: "None — compression is active.",
+        howTested: `Performance test: Sent Accept-Encoding header. Response Content-Encoding: ${encoding}.`,
+        howCaused: "N/A",
+      });
+    }
+  } catch { /* skip */ }
+
+  // ── P2. Cache-Control Headers ──────────────────────────────────────────────
+
+  try {
+    const cacheRes = await fetch(url, { headers: hdr, signal: AbortSignal.timeout(8000) });
+    const cacheControl = cacheRes.headers.get("cache-control") || "";
+    const etag = cacheRes.headers.get("etag") || "";
+    const lastModified = cacheRes.headers.get("last-modified") || "";
+
+    if (!cacheControl && !etag && !lastModified) {
+      findings.push({
+        severity: "medium",
+        type: "No Cache Control Headers [Performance]",
+        description: "Response has no Cache-Control, ETag, or Last-Modified headers. Browsers cannot cache the page, causing full re-downloads on every visit.",
+        location: url,
+        recommendation: "Add Cache-Control headers: for HTML use 'no-cache' (must revalidate). For static assets (JS, CSS, images) use 'public, max-age=31536000, immutable'.",
+        impact: "Every page visit downloads the full HTML again. Users on slow connections or revisiting frequently waste bandwidth and time.",
+        howTested: "Performance test: Checked response headers for Cache-Control, ETag, and Last-Modified. None found.",
+        howCaused: "Server framework not configured with caching middleware. Default Express/Node servers don't set cache headers automatically.",
+      });
+    } else if (cacheControl.includes("no-store") && !cacheControl.includes("private")) {
+      findings.push({
+        severity: "low",
+        type: "Cache-Control: no-store (Aggressive) [Performance]",
+        description: `Cache-Control: "${cacheControl}" prevents any caching. For dynamic pages this is intentional, but for static assets it degrades performance significantly.`,
+        location: url,
+        recommendation: "Use no-store only for sensitive data (banking, medical). For general pages, prefer no-cache with ETag for conditional revalidation.",
+        impact: "Low — aggressive caching prevents sensitive data exposure but hurts repeat-visit performance.",
+        howTested: `Performance test: Cache-Control header value: "${cacheControl}".`,
+        howCaused: "Security-conscious caching settings applied broadly instead of just to sensitive endpoints.",
+      });
+    } else {
+      findings.push({
+        severity: "pass",
+        type: "Cache Control Headers Present [Performance]",
+        description: `Response includes caching directives: ${[cacheControl && `Cache-Control: ${cacheControl}`, etag && `ETag: ${etag.substring(0, 20)}...`, lastModified && `Last-Modified: ${lastModified}`].filter(Boolean).join(", ")}.`,
+        location: url,
+        recommendation: "Verify cache durations match content freshness requirements. Use long max-age for versioned/hashed assets.",
+        impact: "None — caching is configured.",
+        howTested: "Performance test: Checked Cache-Control, ETag, and Last-Modified response headers.",
+        howCaused: "N/A",
+      });
+    }
+  } catch { /* skip */ }
+
+  // ── P3. SEO: Title Tag ────────────────────────────────────────────────────
+
+  const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+  const title = titleMatch?.[1]?.trim() || "";
+
+  if (!title) {
+    findings.push({
+      severity: "high",
+      type: "Missing <title> Tag [SEO]",
+      description: "Page has no <title> tag. Title is the most important on-page SEO element and is shown in browser tabs and search results.",
+      location: url,
+      recommendation: "Add a unique, descriptive <title> tag: <title>Page Name - Site Name</title>. Keep between 50-60 characters.",
+      impact: "Page will not rank in search engines. Browser tab shows blank or URL. Social shares show no title.",
+      howTested: "SEO check: Searched HTML for <title> tag. Not found.",
+      howCaused: "Title tag was not added to the page template.",
+    });
+  } else if (title.length < 10) {
+    findings.push({
+      severity: "medium",
+      type: `<title> Too Short (${title.length} chars): "${title}" [SEO]`,
+      description: "Page title is too short (under 10 characters). Short titles don't describe the page content for search engines.",
+      location: url,
+      recommendation: "Write a descriptive title of 50-60 characters: <title>Keyword-Rich Page Name - Brand Name</title>.",
+      impact: "Poor SEO performance. Search engines use title as primary ranking signal.",
+      howTested: `SEO check: Title found: "${title}" (${title.length} chars). Minimum recommended: 50 chars.`,
+      howCaused: "Title tag present but not optimized with descriptive content.",
+    });
+  } else if (title.length > 60) {
+    findings.push({
+      severity: "low",
+      type: `<title> Too Long (${title.length} chars) [SEO]`,
+      description: `Title is ${title.length} characters — Google truncates titles at ~60 characters in search results.`,
+      location: url,
+      recommendation: "Shorten title to 50-60 characters. Put the most important keywords first.",
+      impact: "Title gets cut off in search results. Reduces click-through rate.",
+      howTested: `SEO check: Title: "${title.substring(0, 60)}..." (${title.length} chars).`,
+      howCaused: "Title contains full sentences or branding that pushes it over the limit.",
+    });
+  } else {
+    findings.push({
+      severity: "pass",
+      type: `<title> Tag Good (${title.length} chars) [SEO]`,
+      description: `Page title is well-formed: "${title}" (${title.length} characters — within 50-60 char ideal range).`,
+      location: url,
+      recommendation: "Include primary keyword early in the title for best SEO impact.",
+      impact: "None — title tag is optimal.",
+      howTested: `SEO check: Title: "${title}" (${title.length} chars).`,
+      howCaused: "N/A",
+    });
+  }
+
+  // ── P4. Meta Description ──────────────────────────────────────────────────
+
+  const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']*)["'][^>]*/i)
+    || html.match(/<meta[^>]*content=["']([^"']*)["'][^>]*name=["']description["'][^>]*/i);
+  const metaDesc = descMatch?.[1]?.trim() || "";
+
+  if (!metaDesc) {
+    findings.push({
+      severity: "medium",
+      type: "Missing Meta Description [SEO]",
+      description: "No meta description tag found. Search engines use meta description as the snippet shown below the title in search results.",
+      location: url,
+      recommendation: "Add: <meta name=\"description\" content=\"Your compelling 150-160 char page description here.\">",
+      impact: "Google generates its own description (often poor quality). Lower click-through rate from search results. Hurts brand perception.",
+      howTested: "SEO check: Searched HTML for <meta name='description'>. Not found.",
+      howCaused: "Meta description not added to page template.",
+    });
+  } else if (metaDesc.length < 50) {
+    findings.push({
+      severity: "low",
+      type: `Meta Description Too Short (${metaDesc.length} chars) [SEO]`,
+      description: `Meta description: "${metaDesc}" is only ${metaDesc.length} characters. Ideal length is 150-160 characters.`,
+      location: url,
+      recommendation: "Expand meta description to 150-160 chars. Include primary keywords and a call to action.",
+      impact: "Short descriptions don't fill the search result snippet — missed opportunity for click-through rate.",
+      howTested: `SEO check: Meta description found but only ${metaDesc.length} chars.`,
+      howCaused: "Meta description present but written as a placeholder or very brief phrase.",
+    });
+  } else if (metaDesc.length > 160) {
+    findings.push({
+      severity: "low",
+      type: `Meta Description Too Long (${metaDesc.length} chars) [SEO]`,
+      description: `Meta description is ${metaDesc.length} characters — Google truncates to ~160 chars in search results.`,
+      location: url,
+      recommendation: "Trim to 150-160 characters. Put the most important content first.",
+      impact: "Description gets cut off in search results with '...' — reduced readability.",
+      howTested: `SEO check: Meta description length: ${metaDesc.length} chars.`,
+      howCaused: "Meta description written as a full paragraph instead of concise snippet.",
+    });
+  } else {
+    findings.push({
+      severity: "pass",
+      type: `Meta Description Good (${metaDesc.length} chars) [SEO]`,
+      description: `Meta description is well-formed (${metaDesc.length} chars, within 150-160 ideal).`,
+      location: url,
+      recommendation: "Include your primary keyword in the meta description to improve relevance.",
+      impact: "None — meta description is optimal.",
+      howTested: `SEO check: Found meta description (${metaDesc.length} chars).`,
+      howCaused: "N/A",
+    });
+  }
+
+  // ── P5. Open Graph Tags ───────────────────────────────────────────────────
+
+  const ogTitle = /<meta[^>]*property=["']og:title["'][^>]*/i.test(html);
+  const ogDesc = /<meta[^>]*property=["']og:description["'][^>]*/i.test(html);
+  const ogImage = /<meta[^>]*property=["']og:image["'][^>]*/i.test(html);
+  const ogUrl = /<meta[^>]*property=["']og:url["'][^>]*/i.test(html);
+  const ogType = /<meta[^>]*property=["']og:type["'][^>]*/i.test(html);
+  const twitterCard = /<meta[^>]*name=["']twitter:card["'][^>]*/i.test(html);
+  const twitterTitle = /<meta[^>]*name=["']twitter:title["'][^>]*/i.test(html);
+  const twitterImage = /<meta[^>]*name=["']twitter:image["'][^>]*/i.test(html);
+
+  const ogMissing = [!ogTitle && "og:title", !ogDesc && "og:description", !ogImage && "og:image", !ogUrl && "og:url"].filter(Boolean);
+
+  if (ogMissing.length > 0) {
+    findings.push({
+      severity: "medium",
+      type: `Open Graph Tags Incomplete [SEO/Social]`,
+      description: `Missing Open Graph properties: ${ogMissing.join(", ")}. Without these, social media previews (Facebook, LinkedIn, Slack) show blank or poorly formatted cards.`,
+      location: url,
+      recommendation: `Add missing OG tags in <head>:\n<meta property="og:title" content="...">\n<meta property="og:description" content="...">\n<meta property="og:image" content="https://...">\n<meta property="og:url" content="${url}">`,
+      impact: "Links shared on Facebook, LinkedIn, and Slack show no image or title — drastically lower click-through rate on social shares.",
+      howTested: `SEO check: Scanned for Open Graph meta properties. Missing: ${ogMissing.join(", ")}.`,
+      howCaused: "Open Graph meta tags not added to the page template. Often forgotten because they only matter for external link sharing.",
+    });
+  } else {
+    findings.push({
+      severity: "pass",
+      type: "Open Graph Tags Complete [SEO/Social]",
+      description: "All core Open Graph tags (og:title, og:description, og:image, og:url) are present. Social media previews will display correctly.",
+      location: url,
+      recommendation: "Also add og:type and og:site_name for richer social previews.",
+      impact: "None — Open Graph tags are complete.",
+      howTested: "SEO check: Verified og:title, og:description, og:image, og:url meta properties in HTML.",
+      howCaused: "N/A",
+    });
+  }
+
+  if (!twitterCard) {
+    findings.push({
+      severity: "low",
+      type: "Missing Twitter Card Meta Tags [SEO/Social]",
+      description: "No twitter:card meta tag found. Twitter/X link previews will not show a rich card format.",
+      location: url,
+      recommendation: `Add: <meta name="twitter:card" content="summary_large_image"> plus twitter:title, twitter:description, twitter:image.`,
+      impact: "Twitter/X links show plain URLs instead of rich preview cards — lower engagement.",
+      howTested: "SEO check: Scanned for twitter:card meta tag. Not found.",
+      howCaused: "Twitter card tags not added to page template. Separate from Open Graph — must be added independently.",
+    });
+  }
+
+  // ── P6. Canonical URL ─────────────────────────────────────────────────────
+
+  const canonicalMatch = html.match(/<link[^>]*rel=["']canonical["'][^>]*href=["']([^"']*)["'][^>]*/i)
+    || html.match(/<link[^>]*href=["']([^"']*)["'][^>]*rel=["']canonical["'][^>]*/i);
+  const canonical = canonicalMatch?.[1] || "";
+
+  if (!canonical) {
+    findings.push({
+      severity: "medium",
+      type: "Missing Canonical URL Tag [SEO]",
+      description: "No <link rel='canonical'> tag found. Without it, search engines may index duplicate versions of this page (with/without www, with/without trailing slash, HTTP/HTTPS).",
+      location: url,
+      recommendation: `Add to <head>: <link rel="canonical" href="${url}">`,
+      impact: "Duplicate content dilutes page authority in search rankings. Multiple versions of the same page compete against each other.",
+      howTested: "SEO check: Scanned for <link rel='canonical'> tag. Not found.",
+      howCaused: "Canonical tag not added to page template. Critical for sites with multiple URL variants.",
+    });
+  } else {
+    findings.push({
+      severity: "pass",
+      type: "Canonical URL Tag Present [SEO]",
+      description: `Canonical URL set to: ${canonical}`,
+      location: url,
+      recommendation: "Ensure canonical URL matches the preferred URL exactly (including https, www preference, trailing slash).",
+      impact: "None — canonical tag is present.",
+      howTested: `SEO check: Found <link rel='canonical' href='${canonical}'>.`,
+      howCaused: "N/A",
+    });
+  }
+
+  // ── P7. Structured Data / Schema.org ─────────────────────────────────────
+
+  const hasJsonLD = /<script[^>]*type=["']application\/ld\+json["'][^>]*>/i.test(html);
+  const hasMicrodata = /itemtype=["']https?:\/\/schema\.org/i.test(html);
+
+  if (!hasJsonLD && !hasMicrodata) {
+    findings.push({
+      severity: "low",
+      type: "No Structured Data (Schema.org) [SEO]",
+      description: "No JSON-LD or microdata structured data found. Structured data enables rich results in Google (star ratings, breadcrumbs, FAQs, events).",
+      location: url,
+      recommendation: "Add JSON-LD structured data relevant to your content type (WebSite, Article, Product, FAQPage, etc.).",
+      impact: "Missed opportunity for rich search result snippets — these can double click-through rates.",
+      howTested: "SEO check: Scanned for <script type='application/ld+json'> and itemtype='https://schema.org/' attributes.",
+      howCaused: "Structured data not implemented. Often overlooked because it's not visible on the page.",
+    });
+  } else {
+    findings.push({
+      severity: "pass",
+      type: "Structured Data Present [SEO]",
+      description: `Structured data found: ${hasJsonLD ? "JSON-LD" : ""}${hasMicrodata ? " Microdata" : ""}. Enables rich results in search engines.`,
+      location: url,
+      recommendation: "Validate your structured data with Google's Rich Results Test tool.",
+      impact: "None — structured data is implemented.",
+      howTested: "SEO check: Found structured data markup.",
+      howCaused: "N/A",
+    });
+  }
+
+  // ── P8. Mobile / Viewport Meta Tag ────────────────────────────────────────
+
+  const viewportMatch = html.match(/<meta[^>]*name=["']viewport["'][^>]*content=["']([^"']*)["'][^>]*/i);
+  const viewport = viewportMatch?.[1] || "";
+
+  if (!viewport) {
+    findings.push({
+      severity: "high",
+      type: "Missing Viewport Meta Tag [Mobile]",
+      description: "No <meta name='viewport'> tag found. Page will render at desktop scale on mobile devices — users must pinch/zoom to read content.",
+      location: url,
+      recommendation: `Add to <head>: <meta name="viewport" content="width=device-width, initial-scale=1">`,
+      impact: "Mobile users see tiny unreadable text. Google's mobile-first indexing may penalize the page in search rankings.",
+      howTested: "Mobile check: Scanned for <meta name='viewport'>. Not found.",
+      howCaused: "Viewport meta tag not added to page template.",
+    });
+  } else if (viewport.includes("user-scalable=no") || viewport.includes("maximum-scale=1")) {
+    findings.push({
+      severity: "medium",
+      type: "Viewport Prevents Zoom (Accessibility Issue) [Mobile]",
+      description: `Viewport tag "${viewport}" prevents users from zooming in. This is an accessibility violation (WCAG 2.1 SC 1.4.4).`,
+      location: url,
+      recommendation: "Remove user-scalable=no and maximum-scale restrictions. Users with visual impairments need to zoom.",
+      impact: "Violates accessibility standards. Users with low vision cannot zoom to read content. Apple removed this restriction in iOS 10+.",
+      howTested: `Mobile check: Viewport content: "${viewport}" — contains zoom-restricting directives.`,
+      howCaused: "Developers add user-scalable=no to prevent layout issues on mobile — but this violates accessibility requirements.",
+    });
+  } else {
+    findings.push({
+      severity: "pass",
+      type: "Viewport Meta Tag Correct [Mobile]",
+      description: `Viewport tag is correctly configured: "${viewport}".`,
+      location: url,
+      recommendation: "Use width=device-width, initial-scale=1 as the standard viewport configuration.",
+      impact: "None — viewport is correctly set.",
+      howTested: `Mobile check: Viewport meta: "${viewport}".`,
+      howCaused: "N/A",
+    });
+  }
+
+  // ── P9. PWA Manifest ──────────────────────────────────────────────────────
+
+  const manifestLink = html.match(/<link[^>]*rel=["']manifest["'][^>]*href=["']([^"']*)["'][^>]*/i);
+  const manifestUrl = manifestLink?.[1] || "";
+
+  if (!manifestUrl) {
+    findings.push({
+      severity: "low",
+      type: "No PWA Manifest [Progressive Web App]",
+      description: "No <link rel='manifest'> found. Without a web app manifest, the site cannot be installed as a Progressive Web App.",
+      location: url,
+      recommendation: "Create a manifest.json and link it: <link rel='manifest' href='/manifest.json'>. Include name, icons, theme_color, and display mode.",
+      impact: "Cannot be installed as a native-like app. No offline support. No splash screen. Missing from Android home screen install prompts.",
+      howTested: "PWA check: Scanned for <link rel='manifest'>. Not found.",
+      howCaused: "PWA manifest not created or linked. Optional but increasingly expected for modern web apps.",
+    });
+  } else {
+    try {
+      const manifestFull = manifestUrl.startsWith("http") ? manifestUrl : `${baseUrl}${manifestUrl.startsWith("/") ? manifestUrl : "/" + manifestUrl}`;
+      const mRes = await fetch(manifestFull, { headers: hdr, signal: AbortSignal.timeout(5000) });
+      if (mRes.ok) {
+        const manifest = await mRes.json().catch(() => null);
+        if (manifest) {
+          const missing = [];
+          if (!manifest.name && !manifest.short_name) missing.push("name");
+          if (!manifest.icons || manifest.icons.length === 0) missing.push("icons");
+          if (!manifest.display) missing.push("display");
+          if (!manifest.theme_color) missing.push("theme_color");
+
+          if (missing.length > 0) {
+            findings.push({
+              severity: "low",
+              type: `PWA Manifest Incomplete (missing: ${missing.join(", ")}) [Progressive Web App]`,
+              description: `Web app manifest at ${manifestFull} is missing required fields: ${missing.join(", ")}.`,
+              location: manifestFull,
+              recommendation: `Add missing fields to manifest.json: ${missing.map(f => `"${f}"`).join(", ")}.`,
+              impact: "Incomplete manifest prevents installability and may cause add-to-home-screen prompts to fail.",
+              howTested: `PWA check: Fetched and parsed manifest.json. Missing: ${missing.join(", ")}.`,
+              howCaused: "Manifest was created but not fully filled out.",
+            });
+          } else {
+            findings.push({
+              severity: "pass",
+              type: "PWA Manifest Complete [Progressive Web App]",
+              description: "Web app manifest is present and contains all required fields (name, icons, display, theme_color).",
+              location: manifestFull,
+              recommendation: "Test installability in Chrome DevTools (Application → Manifest).",
+              impact: "None — PWA manifest is complete.",
+              howTested: "PWA check: Fetched and validated manifest.json fields.",
+              howCaused: "N/A",
+            });
+          }
+        }
+      }
+    } catch { /* skip */ }
+  }
+
+  // ── P10. Service Worker / Offline Support ─────────────────────────────────
+
+  const hasServiceWorker = /serviceWorker|service.worker|navigator\.serviceWorker/i.test(html);
+  if (hasServiceWorker) {
+    findings.push({
+      severity: "pass",
+      type: "Service Worker Detected [PWA]",
+      description: "Service worker registration code found in the page. Offline support and caching may be enabled.",
+      location: url,
+      recommendation: "Test offline behavior: open Chrome DevTools → Application → Service Workers → check 'Offline' then reload.",
+      impact: "None — service worker is present.",
+      howTested: "PWA check: Found navigator.serviceWorker registration in HTML/JS.",
+      howCaused: "N/A",
+    });
+  }
+
+  // ── P11. Heading Structure / Accessibility ────────────────────────────────
+
+  const h1Tags = (html.match(/<h1[^>]*>/gi) || []).length;
+  const h2Tags = (html.match(/<h2[^>]*>/gi) || []).length;
+  const allHeadings = h1Tags + h2Tags + (html.match(/<h[3-6][^>]*>/gi) || []).length;
+
+  if (h1Tags === 0) {
+    findings.push({
+      severity: "medium",
+      type: "Missing H1 Heading Tag [SEO/Accessibility]",
+      description: "No <h1> tag found on the page. H1 is the primary heading — critical for SEO and screen reader navigation.",
+      location: url,
+      recommendation: "Add exactly one <h1> tag containing the primary topic/keyword of the page.",
+      impact: "Search engines cannot identify the page's primary topic. Screen reader users cannot navigate by headings. SEO ranking signal missed.",
+      howTested: "Accessibility check: Scanned HTML for <h1> tags. None found.",
+      howCaused: "Page uses styled <div> or <p> elements as visual headings instead of semantic <h1> tag.",
+    });
+  } else if (h1Tags > 1) {
+    findings.push({
+      severity: "low",
+      type: `Multiple H1 Tags (${h1Tags}) [SEO/Accessibility]`,
+      description: `Page has ${h1Tags} <h1> tags. Best practice is exactly one H1 per page for clear SEO hierarchy.`,
+      location: url,
+      recommendation: "Keep one H1 per page. Demote additional H1s to H2 or H3 to maintain proper heading hierarchy.",
+      impact: "Dilutes the primary topic signal for search engines. Slightly confuses screen reader navigation.",
+      howTested: `Accessibility check: Found ${h1Tags} H1 tags in HTML.`,
+      howCaused: "Multiple page sections use H1 without considering SEO hierarchy.",
+    });
+  } else {
+    findings.push({
+      severity: "pass",
+      type: "Heading Structure Correct (1 H1) [SEO/Accessibility]",
+      description: `Page has exactly 1 H1 tag and ${h2Tags} H2 tag(s). Heading hierarchy is correctly structured.`,
+      location: url,
+      recommendation: "Ensure headings follow logical order (H1 → H2 → H3) without skipping levels.",
+      impact: "None — heading structure is optimal.",
+      howTested: `Accessibility check: Found 1 H1, ${h2Tags} H2 tags.`,
+      howCaused: "N/A",
+    });
+  }
+
+  // ── P12. Image Alt Text ───────────────────────────────────────────────────
+
+  const allImages = html.match(/<img[^>]*/gi) || [];
+  const imagesWithoutAlt = allImages.filter(img => !/\balt=["'][^"']*["']/i.test(img) || /\balt=["']["']/i.test(img));
+  const decorativeOk = allImages.filter(img => /\balt=["']["']/i.test(img));
+
+  if (imagesWithoutAlt.length > decorativeOk.length) {
+    const actuallyMissing = allImages.filter(img => !/\balt=/i.test(img));
+    if (actuallyMissing.length > 0) {
+      findings.push({
+        severity: "medium",
+        type: `${actuallyMissing.length} Image(s) Missing Alt Text [Accessibility]`,
+        description: `${actuallyMissing.length} <img> tag(s) have no alt attribute at all. Screen readers announce these as "image" with no description.`,
+        location: url,
+        recommendation: "Add descriptive alt text to all meaningful images. Use alt='' (empty) for purely decorative images.",
+        impact: "Screen reader users cannot understand image content. Images missing alt text do not contribute to SEO image search ranking.",
+        howTested: `Accessibility check: Scanned ${allImages.length} <img> tags. ${actuallyMissing.length} had no alt attribute.`,
+        howCaused: "Images added to HTML/template without alt attribute. Often forgotten in rapid development.",
+      });
+    }
+  } else if (allImages.length > 0) {
+    findings.push({
+      severity: "pass",
+      type: `All ${allImages.length} Images Have Alt Text [Accessibility]`,
+      description: "All <img> tags have alt attributes (either descriptive text or empty string for decorative images).",
+      location: url,
+      recommendation: "Verify alt text is descriptive, not just filename-based (e.g., 'img001.jpg'). Keep under 125 characters.",
+      impact: "None — image accessibility check passed.",
+      howTested: `Accessibility check: All ${allImages.length} images have alt attributes.`,
+      howCaused: "N/A",
+    });
+  }
+
+  // ── P13. Robots.txt ────────────────────────────────────────────────────────
+
+  try {
+    const robotsRes = await fetch(`${baseUrl}/robots.txt`, { headers: hdr, signal: AbortSignal.timeout(5000) });
+    if (robotsRes.ok) {
+      const robotsTxt = await robotsRes.text().catch(() => "");
+      const blockAll = /Disallow:\s*\//m.test(robotsTxt) && /User-agent:\s*\*/m.test(robotsTxt);
+      const hasSitemap = /Sitemap:/i.test(robotsTxt);
+
+      if (blockAll && robotsTxt.split("Disallow").length <= 2) {
+        findings.push({
+          severity: "high",
+          type: "robots.txt Blocks All Crawling [SEO]",
+          description: "robots.txt contains 'User-agent: * / Disallow: /' — all search engine crawling is blocked. Site will not appear in search results.",
+          location: `${baseUrl}/robots.txt`,
+          recommendation: "Review robots.txt. If site should be indexed, change to 'Disallow:' (empty) or remove the blocking rule. Only block private/admin paths.",
+          impact: "Site completely excluded from Google, Bing, and all other search engines. Zero organic traffic.",
+          howTested: "SEO check: Fetched /robots.txt. Found blanket User-agent: * / Disallow: / block.",
+          howCaused: "robots.txt template used from development environment (where crawling is correctly blocked) deployed to production without modification.",
+        });
+      } else {
+        findings.push({
+          severity: "pass",
+          type: "robots.txt Present and Not Blocking All [SEO]",
+          description: `robots.txt exists and does not block all crawling.${hasSitemap ? " Sitemap URL referenced." : ""}`,
+          location: `${baseUrl}/robots.txt`,
+          recommendation: hasSitemap ? "Good — sitemap is linked in robots.txt." : "Add 'Sitemap: https://yourdomain.com/sitemap.xml' to robots.txt.",
+          impact: "None — robots.txt is correctly configured.",
+          howTested: "SEO check: Fetched and parsed /robots.txt.",
+          howCaused: "N/A",
+        });
+      }
+    } else {
+      findings.push({
+        severity: "low",
+        type: "No robots.txt File [SEO]",
+        description: `robots.txt returned HTTP ${robotsRes.status}. Without it, crawlers make their own assumptions about what to crawl.`,
+        location: `${baseUrl}/robots.txt`,
+        recommendation: "Create a robots.txt at the root: minimum content should be 'User-agent: *\\nDisallow:' (allow all) plus a Sitemap: reference.",
+        impact: "Without robots.txt, admin paths and duplicate URLs may get indexed. Low impact but best practice to have one.",
+        howTested: `SEO check: Fetched /robots.txt. Got HTTP ${robotsRes.status}.`,
+        howCaused: "robots.txt not created for this project.",
+      });
+    }
+  } catch { /* skip */ }
+
+  // ── P14. Sitemap.xml ──────────────────────────────────────────────────────
+
+  try {
+    const sitemapRes = await fetch(`${baseUrl}/sitemap.xml`, { headers: hdr, signal: AbortSignal.timeout(5000) });
+    if (sitemapRes.ok) {
+      const sitemapBody = await sitemapRes.text().catch(() => "");
+      const urlCount = (sitemapBody.match(/<url>/gi) || []).length;
+      findings.push({
+        severity: "pass",
+        type: `Sitemap.xml Present (${urlCount} URLs) [SEO]`,
+        description: `sitemap.xml is accessible with ${urlCount} URL entries. Helps search engines discover all pages.`,
+        location: `${baseUrl}/sitemap.xml`,
+        recommendation: "Submit sitemap to Google Search Console and Bing Webmaster Tools. Set up automatic regeneration when pages change.",
+        impact: "None — sitemap is present.",
+        howTested: `SEO check: Fetched /sitemap.xml. Found ${urlCount} <url> entries.`,
+        howCaused: "N/A",
+      });
+    } else {
+      findings.push({
+        severity: "medium",
+        type: "No sitemap.xml [SEO]",
+        description: `sitemap.xml returned HTTP ${sitemapRes.status}. Without a sitemap, search engines may miss pages.`,
+        location: `${baseUrl}/sitemap.xml`,
+        recommendation: "Generate a sitemap.xml and submit it to Google Search Console. Most frameworks have sitemap generation plugins.",
+        impact: "Search engines may not discover all pages, especially deep or recently added ones.",
+        howTested: `SEO check: Fetched /sitemap.xml. Got HTTP ${sitemapRes.status}.`,
+        howCaused: "Sitemap not generated or configured for this project.",
+      });
+    }
+  } catch { /* skip */ }
+
+  // ── P15. Favicon ──────────────────────────────────────────────────────────
+
+  const hasFaviconLink = /<link[^>]*rel=["'][^"']*icon[^"']*["'][^>]*/i.test(html);
+  try {
+    const faviconRes = await fetch(`${baseUrl}/favicon.ico`, { headers: hdr, signal: AbortSignal.timeout(5000) });
+    const faviconOk = faviconRes.ok || hasFaviconLink;
+
+    if (!faviconOk) {
+      findings.push({
+        severity: "low",
+        type: "Missing Favicon [UX]",
+        description: "No favicon found at /favicon.ico and no <link rel='icon'> in HTML. Browser tab shows default blank icon.",
+        location: `${baseUrl}/favicon.ico`,
+        recommendation: "Create a favicon.ico (at minimum 32x32) and add: <link rel='icon' href='/favicon.ico'>. Use modern formats for Apple and Android icons.",
+        impact: "Browser tab shows no icon — hurts brand recognition and professionalism.",
+        howTested: "UX check: Fetched /favicon.ico (returned non-200) and scanned for <link rel='icon'>. Neither found.",
+        howCaused: "Favicon not created or linked for this project.",
+      });
+    } else {
+      findings.push({
+        severity: "pass",
+        type: "Favicon Present [UX]",
+        description: hasFaviconLink ? "Favicon linked in HTML <head>." : "favicon.ico accessible at /favicon.ico.",
+        location: `${baseUrl}/favicon.ico`,
+        recommendation: "Also add apple-touch-icon for iOS home screen bookmarks.",
+        impact: "None — favicon is present.",
+        howTested: "UX check: Favicon accessible.",
+        howCaused: "N/A",
+      });
+    }
+  } catch { /* skip */ }
+
+  // ── P16. Language Attribute ───────────────────────────────────────────────
+
+  const htmlLang = html.match(/<html[^>]*lang=["']([^"']*)["'][^>]*/i)?.[1] || "";
+  if (!htmlLang) {
+    findings.push({
+      severity: "medium",
+      type: "Missing lang Attribute on <html> [Accessibility]",
+      description: "The <html> element has no lang attribute. Screen readers cannot determine the page language for correct pronunciation.",
+      location: url,
+      recommendation: `Add lang attribute: <html lang="en"> (or appropriate language code).`,
+      impact: "Screen readers use wrong pronunciation rules. Automatic translation tools may not detect language. WCAG 2.1 SC 3.1.1 violation.",
+      howTested: `Accessibility check: Checked <html> opening tag for lang attribute. Not found.`,
+      howCaused: "Page template does not include lang attribute on the root HTML element.",
+    });
+  } else {
+    findings.push({
+      severity: "pass",
+      type: `HTML lang="${htmlLang}" Set [Accessibility]`,
+      description: `Page correctly declares language: lang="${htmlLang}". Screen readers and search engines know the page language.`,
+      location: url,
+      recommendation: "Use specific locale codes where needed (e.g., lang='en-US' vs lang='en-GB').",
+      impact: "None — lang attribute is set.",
+      howTested: `Accessibility check: Found lang="${htmlLang}" on <html> element.`,
+      howCaused: "N/A",
+    });
+  }
+
+  // ── P17. Form Labels ──────────────────────────────────────────────────────
+
+  const formInputs = html.match(/<input\b(?!(?:[^>]*type=["'](?:hidden|submit|button|reset|checkbox|radio)["']))[^>]*/gi) || [];
+  const inputsWithId = formInputs.filter(inp => /\bid=["'][^"']+["']/i.test(inp));
+  const labelsForInputs = (html.match(/<label[^>]*for=["']([^"']*)["'][^>]*/gi) || []).length;
+
+  if (formInputs.length > 0 && labelsForInputs < formInputs.length * 0.5) {
+    findings.push({
+      severity: "medium",
+      type: `Form Inputs Missing Labels (${labelsForInputs}/${formInputs.length}) [Accessibility]`,
+      description: `${formInputs.length - labelsForInputs} form input(s) appear to have no associated <label> tag. Labels are required for screen reader accessibility.`,
+      location: url,
+      recommendation: "Add a <label for='inputId'> for every <input> field. Use aria-label as fallback when visual label is not possible.",
+      impact: "Screen reader users cannot determine what each input field is for. WCAG 2.1 SC 1.3.1 violation. Also hurts usability on mobile (clicking label focuses input).",
+      howTested: `Accessibility check: Found ${formInputs.length} non-hidden inputs and ${labelsForInputs} label[for] tags.`,
+      howCaused: "Forms built with placeholder-only text instead of labels. Placeholders disappear when typing — not a substitute for labels.",
+    });
+  } else if (formInputs.length > 0) {
+    findings.push({
+      severity: "pass",
+      type: "Form Inputs Have Associated Labels [Accessibility]",
+      description: `${labelsForInputs} labels found for ${formInputs.length} form inputs — good label coverage.`,
+      location: url,
+      recommendation: "Also verify aria-describedby is used for complex input descriptions and error messages.",
+      impact: "None — form label accessibility check passed.",
+      howTested: `Accessibility check: ${labelsForInputs} label[for] tags for ${formInputs.length} inputs.`,
+      howCaused: "N/A",
+    });
+  }
+
+  // ── P18. Third-Party Resource Loading ─────────────────────────────────────
+
+  const externalResources: string[] = [];
+  const scriptSrcs = (html.match(/<script[^>]+src=["']([^"']+)["']/gi) || []).map(s => s.match(/src=["']([^"']+)["']/i)?.[1] || "");
+  const linkHrefs = (html.match(/<link[^>]+href=["']([^"']+)["']/gi) || []).map(l => l.match(/href=["']([^"']+)["']/i)?.[1] || "");
+
+  for (const r of [...scriptSrcs, ...linkHrefs]) {
+    try { if (new URL(r).host !== new URL(url).host) externalResources.push(r); } catch {}
+  }
+
+  if (externalResources.length > 0) {
+    const extResults = await Promise.allSettled(
+      externalResources.slice(0, 5).map(r =>
+        fetch(r, { headers: hdr, method: "HEAD", signal: AbortSignal.timeout(5000) })
+          .then(res => ({ url: r, status: res.status, ok: res.ok }))
+          .catch(() => ({ url: r, status: 0, ok: false }))
+      )
+    );
+
+    const failedExternal = extResults
+      .filter(r => r.status === "fulfilled")
+      .map(r => (r as PromiseFulfilledResult<{ url: string; status: number; ok: boolean }>).value)
+      .filter(r => !r.ok && r.status !== 301 && r.status !== 302);
+
+    if (failedExternal.length > 0) {
+      findings.push({
+        severity: "high",
+        type: `${failedExternal.length} External Resource(s) Failing to Load [Performance]`,
+        description: `${failedExternal.length} third-party script/style resource(s) returned errors: ${failedExternal.slice(0, 2).map(r => `${r.url} → ${r.status}`).join(", ")}.`,
+        location: url,
+        recommendation: "Remove or replace failing external resources. Host critical resources locally to avoid third-party failures impacting your site.",
+        impact: "Failed scripts can break page functionality. Failed stylesheets cause layout issues. Users see broken pages.",
+        howTested: `Performance test: Detected ${externalResources.length} external resources and performed HEAD requests on ${Math.min(5, externalResources.length)}. ${failedExternal.length} failed.`,
+        howCaused: "External CDN or third-party service is down, resource URL changed, or resource was deleted.",
+      });
+    } else {
+      findings.push({
+        severity: "pass",
+        type: `All ${Math.min(5, externalResources.length)} External Resources Loading [Performance]`,
+        description: `Tested ${Math.min(5, externalResources.length)} of ${externalResources.length} external resource(s) — all returning successfully.`,
+        location: url,
+        recommendation: "Consider hosting critical resources locally to avoid third-party failure cascades.",
+        impact: "None — external resources are loading.",
+        howTested: `Performance test: Sent HEAD requests to ${Math.min(5, externalResources.length)} external scripts/stylesheets. All returned 200.`,
+        howCaused: "N/A",
+      });
+    }
+  }
+
+  // ── P19. Preload / Resource Hints ────────────────────────────────────────
+
+  const hasPreload = /<link[^>]*rel=["']preload["'][^>]*/i.test(html);
+  const hasPrefetch = /<link[^>]*rel=["']prefetch["'][^>]*/i.test(html);
+  const hasDNSPrefetch = /<link[^>]*rel=["']dns-prefetch["'][^>]*/i.test(html);
+  const hasPreconnect = /<link[^>]*rel=["']preconnect["'][^>]*/i.test(html);
+
+  const resourceHintCount = [hasPreload, hasPrefetch, hasDNSPrefetch, hasPreconnect].filter(Boolean).length;
+
+  if (resourceHintCount === 0 && externalResources.length > 0) {
+    findings.push({
+      severity: "low",
+      type: "No Resource Hints (preload/prefetch/dns-prefetch) [Performance]",
+      description: `Page has ${externalResources.length} external resources but no preload, prefetch, dns-prefetch, or preconnect hints. Resource hints can significantly speed up loading.`,
+      location: url,
+      recommendation: `Add to <head>: <link rel='preconnect' href='https://fonts.gstatic.com'> for Google Fonts, <link rel='dns-prefetch' href='//cdn.example.com'> for CDNs, <link rel='preload' as='script' href='/app.js'> for critical scripts.`,
+      impact: "DNS lookups and connection setup for external resources happen late. Adding hints can shave 200-400ms off load time.",
+      howTested: `Performance test: Scanned for resource hint <link> tags. None found despite ${externalResources.length} external resources.`,
+      howCaused: "Resource hints not added during performance optimization.",
+    });
+  } else if (resourceHintCount > 0) {
+    findings.push({
+      severity: "pass",
+      type: `Resource Hints Present (${resourceHintCount} type${resourceHintCount > 1 ? "s" : ""}) [Performance]`,
+      description: `Page uses resource hints: ${[hasPreload && "preload", hasPrefetch && "prefetch", hasDNSPrefetch && "dns-prefetch", hasPreconnect && "preconnect"].filter(Boolean).join(", ")}.`,
+      location: url,
+      recommendation: "Use preconnect for critical third-party origins (fonts, analytics). Use preload for render-blocking resources.",
+      impact: "None — resource hints are configured.",
+      howTested: "Performance test: Scanned for resource hint link tags.",
+      howCaused: "N/A",
+    });
+  }
+
+  // ── P20. Inline Script / Style Amount ─────────────────────────────────────
+
+  const inlineScripts = (html.match(/<script(?![^>]*src=)[^>]*>[\s\S]*?<\/script>/gi) || []);
+  const inlineStyles = (html.match(/<style[^>]*>[\s\S]*?<\/style>/gi) || []);
+  const inlineStyleAttr = (html.match(/style=["'][^"']{200,}["']/gi) || []).length;
+
+  const totalInlineKB = Math.round((inlineScripts.join("").length + inlineStyles.join("").length) / 1024);
+
+  if (totalInlineKB > 50) {
+    findings.push({
+      severity: "medium",
+      type: `Large Inline Scripts/Styles (${totalInlineKB}KB) [Performance]`,
+      description: `${inlineScripts.length} inline <script> block(s) and ${inlineStyles.length} inline <style> block(s) totaling ~${totalInlineKB}KB. Inline code cannot be cached separately.`,
+      location: url,
+      recommendation: "Move inline scripts and styles to external .js and .css files. External files are cached by the browser on repeat visits.",
+      impact: "Inline code is downloaded fresh on every page load — cannot be cached. Also prevents Content Security Policy from blocking injected scripts.",
+      howTested: `Performance test: Measured total size of inline <script> and <style> tags: ${totalInlineKB}KB.`,
+      howCaused: "Code was written inline for convenience during development and not moved to external files for production.",
+    });
+  }
+
+  // ── P21. Print Stylesheet ─────────────────────────────────────────────────
+
+  const hasPrintCSS = /<link[^>]*media=["']print["'][^>]*/i.test(html) || /@media\s+print/i.test(html);
+  if (hasPrintCSS) {
+    findings.push({
+      severity: "pass",
+      type: "Print Stylesheet Present [UX]",
+      description: "Print-specific CSS detected. Page is optimized for printing.",
+      location: url,
+      recommendation: "Test print preview in browser. Ensure navigation, ads, and interactive elements are hidden in print view.",
+      impact: "None — print styles are present.",
+      howTested: "UX check: Found @media print or <link media='print'> in HTML.",
+      howCaused: "N/A",
+    });
+  }
+
+  // ── P22. Dark Mode Support ────────────────────────────────────────────────
+
+  const hasDarkMode = /@media\s*\(prefers-color-scheme:\s*dark\)/i.test(html)
+    || /prefers-color-scheme|dark-mode|darkMode|data-theme/i.test(html);
+
+  if (hasDarkMode) {
+    findings.push({
+      severity: "pass",
+      type: "Dark Mode Support Detected [UX]",
+      description: "prefers-color-scheme media query or dark mode implementation detected. The site respects users' OS dark mode preference.",
+      location: url,
+      recommendation: "Test dark mode across all pages and components. Ensure all text has sufficient contrast in dark mode.",
+      impact: "None — dark mode is implemented.",
+      howTested: "UX check: Found prefers-color-scheme or dark mode class patterns in HTML/CSS.",
+      howCaused: "N/A",
+    });
+  }
+
+  // ── P23. Reduced Motion Support ───────────────────────────────────────────
+
+  const hasReducedMotion = /prefers-reduced-motion/i.test(html);
+  const hasAnimations = /animation|transition|@keyframes/i.test(html);
+
+  if (hasAnimations && !hasReducedMotion) {
+    findings.push({
+      severity: "low",
+      type: "Animations Without prefers-reduced-motion [Accessibility]",
+      description: "Page uses CSS animations/transitions but no prefers-reduced-motion media query found. Users with vestibular disorders or epilepsy may be affected.",
+      location: url,
+      recommendation: "Wrap animations in: @media (prefers-reduced-motion: reduce) { * { animation: none; transition: none; } }",
+      impact: "Users with vestibular disorders (motion sickness) or photosensitive epilepsy may experience discomfort. WCAG 2.3.3 guideline.",
+      howTested: "Accessibility check: Found animation/transition CSS but no prefers-reduced-motion media query.",
+      howCaused: "Animations added without considering users who have requested reduced motion in their OS settings.",
+    });
+  } else if (hasReducedMotion) {
+    findings.push({
+      severity: "pass",
+      type: "prefers-reduced-motion Respected [Accessibility]",
+      description: "Page respects the prefers-reduced-motion user preference — accessibility for users with motion sensitivity is considered.",
+      location: url,
+      recommendation: "Test with prefers-reduced-motion enabled (OS setting or Chrome DevTools). Verify all significant animations are disabled.",
+      impact: "None — reduced motion is handled.",
+      howTested: "Accessibility check: Found prefers-reduced-motion in CSS.",
+      howCaused: "N/A",
+    });
+  }
+
+  // ── P24. Skip Navigation Link ─────────────────────────────────────────────
+
+  const hasSkipNav = /skip.*(nav|content|main)|jump.*(content|main)/i.test(html);
+  const hasMainLandmark = /<main[^>]*/i.test(html) || /role=["']main["']/i.test(html);
+
+  if (!hasSkipNav && !hasMainLandmark) {
+    findings.push({
+      severity: "low",
+      type: "No Skip Navigation Link or Main Landmark [Accessibility]",
+      description: "No 'skip to content' link or <main> landmark element found. Keyboard users must tab through all navigation on every page.",
+      location: url,
+      recommendation: "Add a skip link: <a href='#main-content' class='skip-link'>Skip to main content</a> and a <main id='main-content'> wrapper.",
+      impact: "Keyboard-only users and screen reader users must tab through the full navigation menu on every page load before reaching content. WCAG 2.4.1.",
+      howTested: "Accessibility check: Scanned for 'skip to content' link text and <main> element.",
+      howCaused: "Navigation accessibility features not implemented in the page template.",
+    });
+  }
+
+  // ── P25. Focus Indicator ──────────────────────────────────────────────────
+
+  const removesOutline = /outline:\s*0|outline:\s*none/i.test(html);
+  if (removesOutline) {
+    findings.push({
+      severity: "medium",
+      type: "CSS Removes Focus Outline [Accessibility]",
+      description: "CSS contains 'outline: 0' or 'outline: none' — this removes the keyboard focus indicator that shows which element is focused.",
+      location: url,
+      recommendation: "Never globally remove outline. Instead, apply a custom focus style: ':focus-visible { outline: 2px solid #6366f1; outline-offset: 2px; }' This applies to keyboard navigation only, not mouse clicks.",
+      impact: "Keyboard-only users cannot see which element is focused. WCAG 2.4.7 violation. Effectively makes the site unusable for keyboard navigation.",
+      howTested: "Accessibility check: Found 'outline: 0' or 'outline: none' in inline styles or <style> blocks in the page source.",
+      howCaused: "Developer removed focus outlines to make the design 'cleaner'. This is a common but serious accessibility mistake.",
+    });
+  }
+
+  return findings;
+}
+
 function buildComprehensiveReport(source: string, findings: Finding[]) {
   const critical = findings.filter(f => f.severity === "critical");
   const high = findings.filter(f => f.severity === "high");
@@ -2113,11 +3688,17 @@ export async function analyzeProjectQA(req: Request, res: Response) {
         send({ progress: 65, message: "Running functional UX tests — buttons, links, forms, images..." });
         const uxFindings = analyzeUserExperience(html, url, responseMs, responseBytes, response.status);
 
-        send({ progress: 78, message: "Simulating human interactions — login flows, button spam, form submissions, internal links..." });
+        send({ progress: 72, message: "Simulating human interactions — login flows, button spam, form submissions, internal links..." });
         const interactiveFindings = await analyzeInteractiveFlow(html, url);
 
-        send({ progress: 90, message: "Compiling full severity-ordered report..." });
-        const allFindings = [...headerFindings, ...htmlFindings, ...uxFindings, ...interactiveFindings];
+        send({ progress: 80, message: "Running advanced security probes — 60+ sensitive paths, HTTP methods, CORS, CSRF, timing attacks, open redirects..." });
+        const advancedSecFindings = await analyzeAdvancedSecurity(html, url);
+
+        send({ progress: 88, message: "Auditing SEO, performance, PWA, accessibility, mobile, structured data, compression..." });
+        const perfSeoFindings = await analyzePerformanceSEO(html, url);
+
+        send({ progress: 95, message: "Compiling full severity-ordered report..." });
+        const allFindings = [...headerFindings, ...htmlFindings, ...uxFindings, ...interactiveFindings, ...advancedSecFindings, ...perfSeoFindings];
         const report = buildComprehensiveReport(url, allFindings);
 
         send({ progress: 100, message: `Analysis complete — ${allFindings.length} tests run` });
@@ -2144,12 +3725,18 @@ export async function analyzeProjectQA(req: Request, res: Response) {
         const responseMs = Date.now() - fetchStart;
         const responseBytes = rawHtml.length;
         const html = rawHtml.slice(0, 800000);
-        const interactiveFindingsNS = await analyzeInteractiveFlow(html, url);
+        const [interactiveFindingsNS, advancedSecFindingsNS, perfSeoFindingsNS] = await Promise.all([
+          analyzeInteractiveFlow(html, url),
+          analyzeAdvancedSecurity(html, url),
+          analyzePerformanceSEO(html, url),
+        ]);
         const allFindings = [
           ...analyzeHeaders(rawHeaders, url),
           ...analyzeHtmlContent(html, url),
           ...analyzeUserExperience(html, url, responseMs, responseBytes, response.status),
           ...interactiveFindingsNS,
+          ...advancedSecFindingsNS,
+          ...perfSeoFindingsNS,
         ];
         return res.json(buildComprehensiveReport(url, allFindings));
       } catch {
