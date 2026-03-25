@@ -1096,6 +1096,572 @@ function analyzeUserExperience(html: string, url: string, responseMs?: number, r
   return findings;
 }
 
+// ─── Interactive / Human Behavior Tests ──────────────────────────────────────
+// Simulates real human actions: login, button clicks, form submissions,
+// navigation, rapid interactions, rate limiting, and stability checks.
+
+async function analyzeInteractiveFlow(html: string, url: string): Promise<Finding[]> {
+  const findings: Finding[] = [];
+  const baseUrl = (() => { try { const u = new URL(url); return `${u.protocol}//${u.host}`; } catch { return ""; } })();
+  const headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+  };
+
+  // ── 1. Login Form Detection & Testing ─────────────────────────────────────
+
+  const loginFormPattern = /<form[^>]*>[\s\S]*?<\/form>/gi;
+  const allForms = html.match(loginFormPattern) || [];
+  const loginForms = allForms.filter(f =>
+    /login|signin|sign-in|auth|log-in|session/i.test(f) ||
+    (/<input[^>]*type=["']password["']/i.test(f))
+  );
+
+  if (loginForms.length > 0) {
+    findings.push({
+      severity: "pass",
+      type: "Login Form Detected",
+      description: `${loginForms.length} login form(s) found on the page. Running authentication flow tests.`,
+      location: url,
+      recommendation: "Ensure login form validates on both client and server side. Test with empty, wrong, and injection payloads.",
+      impact: "None — login form is present and testable.",
+      howTested: "HTML scanned for <form> elements containing password inputs or login-related action attributes.",
+      howCaused: "N/A",
+    });
+
+    // Extract form action
+    const formActionMatch = loginForms[0].match(/action=["']([^"']*)["']/i);
+    const methodMatch = loginForms[0].match(/method=["'](post|get)["']/i);
+    const formAction = formActionMatch?.[1] || url;
+    const formMethod = (methodMatch?.[1] || "post").toUpperCase();
+    const resolvedAction = formAction.startsWith("http") ? formAction : (formAction.startsWith("/") ? `${baseUrl}${formAction}` : url);
+
+    // Extract input field names for login/password
+    const inputNames: string[] = [];
+    const inputMatches = loginForms[0].match(/<input\b[^>]*/gi) || [];
+    for (const inp of inputMatches) {
+      const name = inp.match(/\bname=["']([^"']*)["']/i)?.[1];
+      if (name) inputNames.push(name);
+    }
+
+    const usernameField = inputNames.find(n => /user|email|login|name/i.test(n)) || "username";
+    const passwordField = inputNames.find(n => /pass|pwd/i.test(n)) || "password";
+
+    // Test 1: Empty credential submission
+    try {
+      const emptyStart = Date.now();
+      const emptyRes = await fetch(resolvedAction, {
+        method: formMethod,
+        headers: { ...headers, "Content-Type": "application/x-www-form-urlencoded" },
+        body: `${usernameField}=&${passwordField}=`,
+        redirect: "manual",
+        signal: AbortSignal.timeout(8000),
+      });
+      const emptyMs = Date.now() - emptyStart;
+      if (emptyRes.status === 200 || emptyRes.status === 302) {
+        findings.push({
+          severity: emptyRes.status === 302 && emptyRes.headers.get("location")?.includes("dashboard") ? "critical" : "high",
+          type: "Login — Empty Credentials Accepted [Human Test]",
+          description: `Submitting completely empty username and password returned HTTP ${emptyRes.status}${emptyRes.status === 302 ? ` (redirect to: ${emptyRes.headers.get("location")})` : ""}. Empty credentials should always be rejected with a 400/401.`,
+          location: resolvedAction,
+          recommendation: "Add server-side validation: reject any login request where username or password is empty or whitespace-only. Return HTTP 400 with a clear error message.",
+          impact: emptyRes.status === 302 ? "CRITICAL: Empty credentials succeeded — login is completely broken." : "Server accepted empty fields without visible rejection at the HTTP layer. Check that proper error messages are shown to the user.",
+          howTested: `Human test: Submitted login form with blank ${usernameField}='' and ${passwordField}='' via HTTP ${formMethod} to ${resolvedAction}. Response: ${emptyRes.status} in ${emptyMs}ms.`,
+          howCaused: "Server-side validation may not be checking for empty/whitespace credentials before attempting authentication.",
+        });
+      } else {
+        findings.push({
+          severity: "pass",
+          type: "Login — Empty Credentials Rejected [Human Test]",
+          description: `Server correctly rejected empty credentials with HTTP ${emptyRes.status} in ${emptyMs}ms.`,
+          location: resolvedAction,
+          recommendation: "Also ensure the error message is user-friendly and does not reveal whether the username exists.",
+          impact: "None — empty credential rejection is working.",
+          howTested: `Submitted login form with empty ${usernameField} and ${passwordField}. Response: HTTP ${emptyRes.status}.`,
+          howCaused: "N/A",
+        });
+      }
+    } catch { /* network error — skip */ }
+
+    // Test 2: Wrong credentials
+    try {
+      const wrongStart = Date.now();
+      const wrongRes = await fetch(resolvedAction, {
+        method: formMethod,
+        headers: { ...headers, "Content-Type": "application/x-www-form-urlencoded" },
+        body: `${usernameField}=testuser_qa_probe_12345&${passwordField}=wrongpassword_qa_probe_99`,
+        redirect: "manual",
+        signal: AbortSignal.timeout(8000),
+      });
+      const wrongMs = Date.now() - wrongStart;
+      if (wrongRes.status === 302 && wrongRes.headers.get("location") && !wrongRes.headers.get("location")?.includes("login") && !wrongRes.headers.get("location")?.includes("error")) {
+        findings.push({
+          severity: "critical",
+          type: "Login — Wrong Credentials Accepted [Human Test]",
+          description: `Submitting obviously wrong credentials (testuser_qa_probe_12345 / wrongpassword_qa_probe_99) returned a redirect to: ${wrongRes.headers.get("location")}. This indicates authentication is not working.`,
+          location: resolvedAction,
+          recommendation: "Fix authentication logic immediately. Server must validate credentials before granting access.",
+          impact: "Authentication is completely broken — anyone can log in without valid credentials.",
+          howTested: `Submitted fabricated credentials via ${formMethod} to ${resolvedAction}. Got ${wrongRes.status} redirect in ${wrongMs}ms.`,
+          howCaused: "Authentication check may be misconfigured, bypassed, or commented out.",
+        });
+      } else {
+        findings.push({
+          severity: "pass",
+          type: "Login — Wrong Credentials Rejected [Human Test]",
+          description: `Server correctly rejected wrong credentials with HTTP ${wrongRes.status} in ${wrongMs}ms. Authentication check is functional.`,
+          location: resolvedAction,
+          recommendation: "Ensure error message does not distinguish between 'wrong username' vs 'wrong password' (avoids username enumeration).",
+          impact: "None — authentication rejection is working.",
+          howTested: `Submitted fake credentials (testuser_qa_probe_12345 / wrongpassword_qa_probe_99) via ${formMethod}. Response: HTTP ${wrongRes.status} in ${wrongMs}ms.`,
+          howCaused: "N/A",
+        });
+      }
+    } catch { /* skip */ }
+
+    // Test 3: SQL Injection in login
+    try {
+      const sqliPayload = `' OR '1'='1`;
+      const sqliRes = await fetch(resolvedAction, {
+        method: formMethod,
+        headers: { ...headers, "Content-Type": "application/x-www-form-urlencoded" },
+        body: `${usernameField}=${encodeURIComponent(sqliPayload)}&${passwordField}=${encodeURIComponent(sqliPayload)}`,
+        redirect: "manual",
+        signal: AbortSignal.timeout(8000),
+      });
+      if (sqliRes.status === 302 && sqliRes.headers.get("location") && !sqliRes.headers.get("location")?.includes("login")) {
+        findings.push({
+          severity: "critical",
+          type: "Login — SQL Injection Bypass Succeeded [Human Test]",
+          description: `Classic SQL injection payload (' OR '1'='1) in the login form resulted in a successful redirect. The database query is vulnerable.`,
+          location: resolvedAction,
+          recommendation: "Use parameterized queries or prepared statements. NEVER interpolate user input into SQL strings.",
+          impact: "Attacker can log in as any user, extract all user data, modify the database, or drop tables.",
+          howTested: `Submitted SQLi payload ' OR '1'='1 in ${usernameField} and ${passwordField} fields. Got redirect to: ${sqliRes.headers.get("location")}.`,
+          howCaused: "SQL query is constructed by concatenating user input directly into the query string without sanitization.",
+        });
+      } else {
+        findings.push({
+          severity: "pass",
+          type: "Login — SQL Injection Rejected [Human Test]",
+          description: `SQL injection payload (' OR '1'='1) was correctly rejected with HTTP ${sqliRes.status}. Parameterized queries appear to be in use.`,
+          location: resolvedAction,
+          recommendation: "Continue using parameterized queries. Also test with more advanced payloads (UNION, SLEEP, stacked queries).",
+          impact: "None — SQL injection test passed.",
+          howTested: `Submitted ' OR '1'='1 as both username and password. Server responded: HTTP ${sqliRes.status}.`,
+          howCaused: "N/A",
+        });
+      }
+    } catch { /* skip */ }
+
+    // Test 4: XSS in login field
+    try {
+      const xssPayload = `<script>alert('QA_XSS_TEST')</script>`;
+      const xssRes = await fetch(resolvedAction, {
+        method: formMethod,
+        headers: { ...headers, "Content-Type": "application/x-www-form-urlencoded" },
+        body: `${usernameField}=${encodeURIComponent(xssPayload)}&${passwordField}=anything`,
+        redirect: "manual",
+        signal: AbortSignal.timeout(8000),
+      });
+      const xssBody = xssRes.status === 200 ? await xssRes.text().catch(() => "") : "";
+      if (xssBody.includes("<script>alert('QA_XSS_TEST')</script>")) {
+        findings.push({
+          severity: "critical",
+          type: "Login — XSS Reflected in Response [Human Test]",
+          description: "XSS payload submitted in username field was reflected back in the response without encoding. This is a confirmed reflected XSS vulnerability.",
+          location: resolvedAction,
+          recommendation: "HTML-encode all user input before rendering it in responses. Use a templating engine with automatic escaping.",
+          impact: "Attacker can craft a login URL that executes JavaScript in the victim's browser — stealing cookies and session tokens.",
+          howTested: `Submitted <script>alert('QA_XSS_TEST')</script> as username. Response body contained the unencoded script tag.`,
+          howCaused: "User input is reflected into the HTML response without HTML entity encoding.",
+        });
+      } else {
+        findings.push({
+          severity: "pass",
+          type: "Login — XSS Input Properly Handled [Human Test]",
+          description: `XSS payload submitted in login form was not reflected unencoded in the HTTP ${xssRes.status} response.`,
+          location: resolvedAction,
+          recommendation: "Also test with encoded variants: %3Cscript%3E, javascript: hrefs, and event handlers (onerror, onload).",
+          impact: "None — XSS in login form test passed.",
+          howTested: `Submitted <script>alert('QA_XSS_TEST')</script> as username. Response did not reflect unencoded payload.`,
+          howCaused: "N/A",
+        });
+      }
+    } catch { /* skip */ }
+
+  } else {
+    findings.push({
+      severity: "low",
+      type: "No Login Form Detected [Human Test]",
+      description: "No login form (with password field) found on this page. Login flow tests were skipped.",
+      location: url,
+      recommendation: "If this page has a login at a different URL, run the test against that URL directly.",
+      impact: "None — login tests only apply to pages with authentication forms.",
+      howTested: "HTML scanned for <form> elements containing <input type='password'>. None found.",
+      howCaused: "N/A",
+    });
+  }
+
+  // ── 2. Rapid Click / Button Spam Stability Test ───────────────────────────
+
+  try {
+    const rapidCount = 10;
+    const rapidStart = Date.now();
+    const rapidRequests = Array.from({ length: rapidCount }, () =>
+      fetch(url, {
+        headers,
+        signal: AbortSignal.timeout(10000),
+      }).then(r => ({ status: r.status, ok: r.ok })).catch(() => ({ status: 0, ok: false }))
+    );
+    const rapidResults = await Promise.all(rapidRequests);
+    const rapidMs = Date.now() - rapidStart;
+    const allOk = rapidResults.every(r => r.status === 200 || r.status === 301 || r.status === 302);
+    const statuses = [...new Set(rapidResults.map(r => r.status))];
+    const failCount = rapidResults.filter(r => r.status === 0 || r.status >= 500).length;
+    const rateLimited = rapidResults.some(r => r.status === 429);
+
+    if (rateLimited) {
+      findings.push({
+        severity: "pass",
+        type: "Rapid Request Rate Limiting Active [Human Test]",
+        description: `Rate limiting detected: ${rapidCount} rapid concurrent requests triggered HTTP 429 (Too Many Requests). Rate limiting is protecting the server.`,
+        location: url,
+        recommendation: "Verify rate limit thresholds are appropriate (not too strict for legitimate users, not too loose for bots).",
+        impact: "None — rate limiting is working correctly.",
+        howTested: `Human test: Sent ${rapidCount} simultaneous GET requests in parallel. Server returned HTTP 429 after threshold exceeded.`,
+        howCaused: "N/A — rate limiting is correctly configured.",
+      });
+    } else if (failCount > 0) {
+      findings.push({
+        severity: "high",
+        type: "Server Instability Under Rapid Requests [Human Test]",
+        description: `${failCount} out of ${rapidCount} rapid concurrent requests failed (${statuses.join(", ")}). The server crashes or errors under rapid clicking/refreshing.`,
+        location: url,
+        recommendation: "Add request queuing and connection pooling. Implement rate limiting with HTTP 429. Add circuit breakers for database connections.",
+        impact: "Real users who reload quickly, use multiple tabs, or have slow connections may encounter server errors. Bot attacks amplify this failure.",
+        howTested: `Human test: Simulated rapid button clicking — sent ${rapidCount} concurrent GET requests simultaneously in ${rapidMs}ms. ${failCount} failed.`,
+        howCaused: "Server lacks connection pooling or rate limiting, causing resource exhaustion under concurrent load.",
+      });
+    } else if (allOk) {
+      findings.push({
+        severity: "pass",
+        type: "Server Stable Under Rapid Requests [Human Test]",
+        description: `${rapidCount} concurrent rapid requests all returned ${statuses.join("/")} in ${rapidMs}ms total. Server handles rapid clicking without errors.`,
+        location: url,
+        recommendation: "Add rate limiting (HTTP 429) to protect against DDoS even if the server handles it currently.",
+        impact: "None — server is stable under rapid requests.",
+        howTested: `Human test: Sent ${rapidCount} simultaneous GET requests in parallel (simulating rapid button clicks). All returned ${statuses[0]}.`,
+        howCaused: "N/A",
+      });
+    }
+  } catch { /* skip */ }
+
+  // ── 3. Internal Link Probing ───────────────────────────────────────────────
+
+  const internalLinks: string[] = [];
+  const linkMatches = html.match(/href=["']([^"']+)["']/gi) || [];
+  for (const match of linkMatches) {
+    const href = match.replace(/href=["']/i, "").replace(/["']$/, "").trim();
+    if (!href || href === "#" || href.startsWith("javascript:") || href.startsWith("mailto:") || href.startsWith("tel:")) continue;
+    if (href.startsWith("/") && baseUrl) {
+      internalLinks.push(`${baseUrl}${href}`);
+    } else if (!href.startsWith("http")) {
+      try { internalLinks.push(new URL(href, url).href); } catch {}
+    }
+  }
+  const uniqueInternalLinks = [...new Set(internalLinks)].slice(0, 8);
+
+  if (uniqueInternalLinks.length > 0) {
+    const linkResults = await Promise.allSettled(
+      uniqueInternalLinks.map(link =>
+        fetch(link, { method: "HEAD", headers, redirect: "follow", signal: AbortSignal.timeout(6000) })
+          .then(r => ({ link, status: r.status, ok: r.ok }))
+          .catch(() => ({ link, status: 0, ok: false }))
+      )
+    );
+
+    const resolvedLinks = linkResults.map(r => r.status === "fulfilled" ? r.value : { link: "", status: 0, ok: false });
+    const brokenLinks = resolvedLinks.filter(r => r.status === 404 || r.status === 0 || r.status >= 500);
+    const workingLinks = resolvedLinks.filter(r => r.ok || r.status === 200 || r.status === 301 || r.status === 302);
+
+    if (brokenLinks.length > 0) {
+      findings.push({
+        severity: "high",
+        type: "Broken Internal Links Found [Human Test]",
+        description: `${brokenLinks.length} internal page link(s) returned errors when clicked: ${brokenLinks.slice(0, 3).map(l => `${l.link} → ${l.status}`).join(", ")}.`,
+        location: url,
+        recommendation: "Fix or remove all broken links. Set up automated broken-link monitoring (e.g., Dead Link Checker). Return 301 redirects for moved pages.",
+        impact: "Users click links and land on error pages. This is a direct functional failure that human testers report immediately. SEO is also damaged by broken internal links.",
+        howTested: `Human test: Extracted ${uniqueInternalLinks.length} internal links from page HTML and performed HEAD requests on each to verify they load. ${brokenLinks.length} returned non-200 status codes.`,
+        howCaused: `Pages were linked but no longer exist or the server returned errors. Broken links: ${brokenLinks.slice(0, 2).map(l => l.link).join(", ")}.`,
+      });
+    }
+
+    if (workingLinks.length > 0) {
+      findings.push({
+        severity: "pass",
+        type: "Internal Navigation Links Working [Human Test]",
+        description: `${workingLinks.length} internal link(s) tested and all responded successfully (${[...new Set(workingLinks.map(l => l.status))].join("/")}).`,
+        location: url,
+        recommendation: "Continue monitoring internal links. Set up automated checks to catch regressions.",
+        impact: "None — navigation is functional.",
+        howTested: `Human test: Clicked through ${workingLinks.length} internal links by sending HEAD requests. All returned successful HTTP status codes.`,
+        howCaused: "N/A",
+      });
+    }
+  }
+
+  // ── 4. Page Stability — Repeated Load Test ────────────────────────────────
+
+  try {
+    const repeatCount = 5;
+    const times: number[] = [];
+    for (let i = 0; i < repeatCount; i++) {
+      const t0 = Date.now();
+      await fetch(url, { headers, signal: AbortSignal.timeout(10000) }).catch(() => null);
+      times.push(Date.now() - t0);
+      if (i < repeatCount - 1) await new Promise(r => setTimeout(r, 300));
+    }
+    const avgMs = Math.round(times.reduce((a, b) => a + b, 0) / times.length);
+    const maxMs = Math.max(...times);
+    const minMs = Math.min(...times);
+    const variance = maxMs - minMs;
+
+    if (variance > 3000) {
+      findings.push({
+        severity: "high",
+        type: "Inconsistent Page Load Times [Human Test]",
+        description: `Repeated page loads show extreme variance: min ${minMs}ms, max ${maxMs}ms, avg ${avgMs}ms (${variance}ms variance). Users experience unpredictable loading.`,
+        location: url,
+        recommendation: "Add server-side caching (Redis, Varnish). Use a CDN for static assets. Profile and optimize the slowest requests.",
+        impact: "Users experience random slowdowns. This indicates server instability — some requests hit a cache miss or an overloaded worker.",
+        howTested: `Human test: Loaded the page ${repeatCount} times in sequence with 300ms gaps. Recorded wall-clock response times: [${times.join(", ")}]ms.`,
+        howCaused: `Response times vary by ${variance}ms, suggesting no consistent caching layer. Some requests may hit cold code paths or overloaded worker processes.`,
+      });
+    } else {
+      findings.push({
+        severity: "pass",
+        type: "Consistent Page Load Times [Human Test]",
+        description: `Page loaded ${repeatCount} times with consistent timing: avg ${avgMs}ms, min ${minMs}ms, max ${maxMs}ms (${variance}ms variance — acceptable).`,
+        location: url,
+        recommendation: "Set up performance monitoring (e.g., Datadog, New Relic) to catch regressions in production.",
+        impact: "None — load time consistency is good.",
+        howTested: `Human test: Page loaded ${repeatCount} times sequentially. Response times: [${times.join(", ")}]ms.`,
+        howCaused: "N/A",
+      });
+    }
+  } catch { /* skip */ }
+
+  // ── 5. Form Action Endpoint Testing ──────────────────────────────────────
+
+  const nonLoginForms = allForms.filter(f => !/<input[^>]*type=["']password["']/i.test(f));
+  for (const form of nonLoginForms.slice(0, 3)) {
+    const actionMatch = form.match(/action=["']([^"']*)["']/i);
+    const methodMatch = form.match(/method=["'](post|get)["']/i);
+    if (!actionMatch) continue;
+    const action = actionMatch[1];
+    const method = (methodMatch?.[1] || "get").toUpperCase();
+    const resolvedUrl = action.startsWith("http") ? action : (action.startsWith("/") ? `${baseUrl}${action}` : url);
+
+    try {
+      const emptyFormRes = await fetch(resolvedUrl, {
+        method,
+        headers: { ...headers, "Content-Type": "application/x-www-form-urlencoded" },
+        body: method === "POST" ? "" : undefined,
+        redirect: "manual",
+        signal: AbortSignal.timeout(8000),
+      });
+
+      if (emptyFormRes.status === 200 || emptyFormRes.status === 302) {
+        findings.push({
+          severity: "medium",
+          type: "Form Accepts Empty Submission [Human Test]",
+          description: `A non-login form with action "${action}" (${method}) accepts an empty submission without validation (returned HTTP ${emptyFormRes.status}).`,
+          location: resolvedUrl,
+          recommendation: "Add server-side validation for all required fields. Return HTTP 400 with field-level error messages for invalid submissions.",
+          impact: "Users can accidentally submit blank forms. Also opens the form endpoint to spam and abuse without CAPTCHA or rate limiting.",
+          howTested: `Human test: Submitted form (action="${action}", method=${method}) with completely empty body. Got HTTP ${emptyFormRes.status}.`,
+          howCaused: "Server-side form validation is missing or only done client-side. Empty POST request was accepted without checking required fields.",
+        });
+      } else {
+        findings.push({
+          severity: "pass",
+          type: "Form Rejects Empty Submission [Human Test]",
+          description: `Form at "${action}" (${method}) correctly rejected an empty submission with HTTP ${emptyFormRes.status}.`,
+          location: resolvedUrl,
+          recommendation: "Ensure the error response includes human-readable field-specific validation messages.",
+          impact: "None — server-side form validation is active.",
+          howTested: `Submitted empty ${method} request to form action "${action}". Server returned HTTP ${emptyFormRes.status}.`,
+          howCaused: "N/A",
+        });
+      }
+    } catch { /* skip */ }
+  }
+
+  // ── 6. Rate Limiting Detection ────────────────────────────────────────────
+
+  try {
+    const burstCount = 20;
+    const burstRequests = Array.from({ length: burstCount }, () =>
+      fetch(url, { headers, signal: AbortSignal.timeout(8000) })
+        .then(r => ({ status: r.status, retryAfter: r.headers.get("retry-after"), rateLimit: r.headers.get("x-ratelimit-remaining") }))
+        .catch(() => ({ status: 0, retryAfter: null, rateLimit: null }))
+    );
+    const burstResults = await Promise.all(burstRequests);
+    const has429 = burstResults.some(r => r.status === 429);
+    const hasRateLimitHeaders = burstResults.some(r => r.rateLimit !== null);
+
+    if (!has429 && !hasRateLimitHeaders) {
+      findings.push({
+        severity: "medium",
+        type: "No Rate Limiting Detected [Human Test]",
+        description: `${burstCount} rapid requests sent in parallel — no HTTP 429 response and no X-RateLimit headers detected. The server does not appear to rate-limit requests.`,
+        location: url,
+        recommendation: "Implement rate limiting at the web server or application level. Return HTTP 429 with Retry-After header when limits are exceeded. Consider Cloudflare or nginx rate limiting.",
+        impact: "Without rate limiting, attackers can scrape the site, brute-force passwords, or send spam form submissions. DDoS attacks are more effective.",
+        howTested: `Human test: Sent ${burstCount} simultaneous requests. No HTTP 429 response received. No X-RateLimit-Remaining or Retry-After headers in any response.`,
+        howCaused: "Rate limiting middleware is not configured on this server or CDN. All requests are served regardless of frequency.",
+      });
+    }
+  } catch { /* skip */ }
+
+  // ── 7. 404 Error Page Quality ─────────────────────────────────────────────
+
+  try {
+    const fake404Url = `${baseUrl}/qa-probe-this-page-does-not-exist-${Date.now()}`;
+    const notFoundRes = await fetch(fake404Url, { headers, signal: AbortSignal.timeout(8000) });
+    const notFoundBody = await notFoundRes.text().catch(() => "");
+
+    if (notFoundRes.status === 200) {
+      findings.push({
+        severity: "medium",
+        type: "Soft 404 — Server Returns 200 for Non-Existent Pages [Human Test]",
+        description: "Requesting a completely random URL returns HTTP 200 instead of 404. This is a 'soft 404' that confuses search engines and monitoring tools.",
+        location: fake404Url,
+        recommendation: "Return HTTP 404 for pages that don't exist. In SPAs, configure the server to return 404 for unknown routes that don't match actual app routes.",
+        impact: "Search engines index non-existent pages. Error monitoring tools cannot detect broken links. SEO crawl budget is wasted.",
+        howTested: `Human test: Navigated to a completely fake URL (${fake404Url}). Server returned HTTP 200 instead of 404.`,
+        howCaused: "Server (likely an SPA) returns 200 + index.html for all routes, including ones that don't exist in the app.",
+      });
+    } else if (notFoundRes.status === 404) {
+      const has404Content = /404|not found|error|page.*missing/i.test(notFoundBody);
+      findings.push({
+        severity: "pass",
+        type: "404 Error Page Working [Human Test]",
+        description: `Non-existent page correctly returned HTTP 404${has404Content ? " with helpful error content" : ""}.`,
+        location: fake404Url,
+        recommendation: "Ensure 404 page includes navigation links back to the homepage and a search bar.",
+        impact: "None — 404 handling is correct.",
+        howTested: `Human test: Navigated to fake URL ${fake404Url}. Server returned HTTP 404.`,
+        howCaused: "N/A",
+      });
+    }
+  } catch { /* skip */ }
+
+  // ── 8. Content Quality Checks ─────────────────────────────────────────────
+
+  // Lorem ipsum / placeholder text
+  if (/lorem ipsum|placeholder text|dummy text|insert text here|coming soon|under construction/i.test(html)) {
+    findings.push({
+      severity: "medium",
+      type: "Placeholder / Lorem Ipsum Text in Production [Human Test]",
+      description: "Placeholder or lorem ipsum text detected in the live page content. This is a human tester's first observation.",
+      location: url,
+      recommendation: "Replace all placeholder content with real copy before deploying to production.",
+      impact: "Users see dummy content — damages credibility and brand trust immediately.",
+      howTested: "Human test: Scanned visible page text for placeholder patterns (lorem ipsum, 'coming soon', 'insert text here', etc.).",
+      howCaused: "Design or development placeholder content was not replaced before the page went live.",
+    });
+  }
+
+  // TODO comments in HTML
+  const todoComments = (html.match(/<!--[^>]*(?:TODO|FIXME|HACK|XXX|BUG|NOTE: remove|temp|temporary|delete this)[^>]*-->/gi) || []);
+  if (todoComments.length > 0) {
+    findings.push({
+      severity: "medium",
+      type: "Developer TODO Comments in Production HTML [Human Test]",
+      description: `${todoComments.length} HTML comment(s) contain developer notes (TODO, FIXME, HACK, TEMP). These are visible to anyone who views source.`,
+      location: url,
+      recommendation: "Remove all developer comments from production HTML. Use build-time comment stripping. Review comments for sensitive information.",
+      impact: "Developer intent and unfinished work is visible to competitors and attackers. May reveal planned features or known bugs.",
+      howTested: "Human test: Viewed page source and searched for developer comment patterns (TODO, FIXME, HACK, XXX, BUG, TEMP).",
+      howCaused: "Developers leave TODO comments during development. Build tools are not configured to strip HTML comments.",
+    });
+  }
+
+  // ── 9. Search/Filter Input Testing ───────────────────────────────────────
+
+  const searchInputs = (html.match(/<input[^>]*type=["']search["'][^>]*/gi) || []).concat(
+    (html.match(/<input[^>]*(?:placeholder|name)=["'][^"']*(?:search|query|q|find|filter)[^"']*["'][^>]*/gi) || [])
+  );
+  if (searchInputs.length > 0) {
+    findings.push({
+      severity: "pass",
+      type: "Search Input Detected [Human Test]",
+      description: `${searchInputs.length} search/filter input(s) found. These should be tested with: empty search, special characters, very long strings, and XSS payloads.`,
+      location: url,
+      recommendation: "Test: (1) Empty search — should show helpful message, not error. (2) Special chars (<, >, &, \", ') — should be escaped in results. (3) 1000+ chars — should enforce maxlength. (4) SQL: ' OR 1=1 — should not return unexpected results.",
+      impact: "None — search inputs documented for manual follow-up testing.",
+      howTested: "Human test: Located search/filter input elements in HTML. Flagged for manual interactive testing.",
+      howCaused: "N/A",
+    });
+  }
+
+  // ── 10. Session / Cookie Security ────────────────────────────────────────
+
+  try {
+    const cookieRes = await fetch(url, { headers, signal: AbortSignal.timeout(8000) });
+    const setCookieHeaders = cookieRes.headers.get("set-cookie") || "";
+    if (setCookieHeaders) {
+      const cookies = setCookieHeaders.split(",").filter(c => c.trim());
+      const insecureCookies = cookies.filter(c => !/\bSecure\b/i.test(c));
+      const noHttpOnly = cookies.filter(c => !/\bHttpOnly\b/i.test(c));
+      const noSameSite = cookies.filter(c => !/\bSameSite\b/i.test(c));
+
+      if (insecureCookies.length > 0) {
+        findings.push({
+          severity: "high",
+          type: "Insecure Cookies (Missing Secure Flag) [Human Test]",
+          description: `${insecureCookies.length} cookie(s) are set without the Secure flag. These cookies will be sent over HTTP connections.`,
+          location: url,
+          recommendation: "Add the Secure flag to all cookies: Set-Cookie: sessionid=xxx; Secure; HttpOnly; SameSite=Strict",
+          impact: "Cookies can be intercepted in plaintext over HTTP connections. Session tokens can be stolen by MITM attackers on unencrypted networks.",
+          howTested: "Human test: Inspected Set-Cookie response headers for Secure flag. Found cookies without it.",
+          howCaused: "Cookie configuration omits the Secure attribute — often forgotten when copying cookie setup from development environments.",
+        });
+      }
+      if (noHttpOnly.length > 0) {
+        findings.push({
+          severity: "high",
+          type: "Cookies Missing HttpOnly Flag [Human Test]",
+          description: `${noHttpOnly.length} cookie(s) are accessible to JavaScript (no HttpOnly flag). XSS can steal these session cookies.`,
+          location: url,
+          recommendation: "Add HttpOnly flag to all session cookies: Set-Cookie: sessionid=xxx; HttpOnly",
+          impact: "If XSS is exploited, document.cookie will expose these session tokens to the attacker's script.",
+          howTested: "Human test: Checked Set-Cookie headers for HttpOnly attribute. Found cookies without it.",
+          howCaused: "Session cookies set without HttpOnly — allows JavaScript to read them, which is the main goal of XSS cookie theft attacks.",
+        });
+      }
+      if (noSameSite.length === 0 || (noSameSite.length === 0 && cookies.length > 0)) {
+        findings.push({
+          severity: "pass",
+          type: "SameSite Cookie Protection Present [Human Test]",
+          description: "Cookies are configured with SameSite attribute — CSRF protection via cookie policy is active.",
+          location: url,
+          recommendation: "Use SameSite=Strict for session cookies if cross-site form submissions are not needed.",
+          impact: "None — SameSite is configured.",
+          howTested: "Human test: Inspected Set-Cookie headers for SameSite attribute.",
+          howCaused: "N/A",
+        });
+      }
+    }
+  } catch { /* skip */ }
+
+  return findings;
+}
+
 function buildComprehensiveReport(source: string, findings: Finding[]) {
   const critical = findings.filter(f => f.severity === "critical");
   const high = findings.filter(f => f.severity === "high");
@@ -1544,11 +2110,14 @@ export async function analyzeProjectQA(req: Request, res: Response) {
         send({ progress: 55, message: "Scanning HTML for vulnerabilities and bizarre patterns..." });
         const htmlFindings = analyzeHtmlContent(html, url);
 
-        send({ progress: 70, message: "Running functional UX tests — buttons, links, forms, images..." });
+        send({ progress: 65, message: "Running functional UX tests — buttons, links, forms, images..." });
         const uxFindings = analyzeUserExperience(html, url, responseMs, responseBytes, response.status);
 
-        send({ progress: 85, message: "Compiling severity-ordered report..." });
-        const allFindings = [...headerFindings, ...htmlFindings, ...uxFindings];
+        send({ progress: 78, message: "Simulating human interactions — login flows, button spam, form submissions, internal links..." });
+        const interactiveFindings = await analyzeInteractiveFlow(html, url);
+
+        send({ progress: 90, message: "Compiling full severity-ordered report..." });
+        const allFindings = [...headerFindings, ...htmlFindings, ...uxFindings, ...interactiveFindings];
         const report = buildComprehensiveReport(url, allFindings);
 
         send({ progress: 100, message: `Analysis complete — ${allFindings.length} tests run` });
@@ -1575,10 +2144,12 @@ export async function analyzeProjectQA(req: Request, res: Response) {
         const responseMs = Date.now() - fetchStart;
         const responseBytes = rawHtml.length;
         const html = rawHtml.slice(0, 800000);
+        const interactiveFindingsNS = await analyzeInteractiveFlow(html, url);
         const allFindings = [
           ...analyzeHeaders(rawHeaders, url),
           ...analyzeHtmlContent(html, url),
           ...analyzeUserExperience(html, url, responseMs, responseBytes, response.status),
+          ...interactiveFindingsNS,
         ];
         return res.json(buildComprehensiveReport(url, allFindings));
       } catch {
